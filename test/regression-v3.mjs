@@ -40,6 +40,17 @@ const setDoc = async (doc, items) => {
   return r;
 };
 
+/** 写入后回读确认（页面自动保存可能覆盖外部写入，最多重试 3 次） */
+const setDocVerified = async (doc, items, check) => {
+  for (let i = 0; i < 3; i++) {
+    await setDoc(doc, items);
+    await sleep(700);
+    const cur = await apiGet(doc);
+    if (!check || check(cur.items)) return true;
+  }
+  return false;
+};
+
 /* ---------- 启动 ---------- */
 fs.rmSync(TMP, { recursive: true, force: true });
 fs.rmSync(PROFILE, { recursive: true, force: true });
@@ -157,9 +168,20 @@ await send('Page.enable');
 await sleep(2400);
 
 const today = new Date();
-const iso = (d) => d.toISOString().slice(0, 10);
+/** 本地日期，不用 toISOString（避免 UTC 差一天） */
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const todayStr = iso(today);
 const longAgo = iso(new Date(today.getTime() - 40 * 86400000));
+
+/** 等元素出现 */
+async function waitFor(selector, timeout = 4000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await ev(`!!document.querySelector(${JSON.stringify(selector)})`)) return true;
+    await sleep(150);
+  }
+  return false;
+}
 
 /* ================= 1. 旧数据迁移 ================= */
 const legacy = [
@@ -240,21 +262,38 @@ const t = (id, title, logDate, hours) => ({
   archived: false,
   deletedAt: null,
 });
-await setDoc('projects', [t('in-week', '本周任务（今天2h）', todayStr, 2), t('old', '上月任务（40天前3h）', longAgo, 3)]);
+const seeded = await setDocVerified(
+  'projects',
+  [t('in-week', '本周任务（今天2h）', todayStr, 2), t('old', '上月任务（40天前3h）', longAgo, 3)],
+  (items) => items.length === 2 && items.every((x) => x.timeLogs?.length === 1),
+);
+rec('测试数据准备（两条带流水的任务）', seeded);
 await reload();
 await ev(`location.hash = '#/reports'`);
 await sleep(1200);
 await clickText('button', '一键生成', 2600);
 const rep = (await apiGet('reports')).items[0];
 rec('周报生成成功', !!rep, rep ? `${rep.start}~${rep.end}` : '无');
-rec('本期工时只统计周期内流水', Number(rep?.snapshot?.metrics?.hoursAct) === 2, `hoursAct=${rep?.snapshot?.metrics?.hoursAct}（期望 2）`);
-rec('任务完成数按 doneAt 计入', rep?.snapshot?.metrics?.taskDone === 2, `taskDone=${rep?.snapshot?.metrics?.taskDone}`);
+const inRep = (d) => !!rep && d >= rep.start && d <= rep.end;
+const projDoc = await apiGet('projects');
+const expectedHours = projDoc.items.reduce(
+  (acc, task) => acc + (task.timeLogs ?? []).filter((l) => inRep(l.date)).reduce((a, l) => a + l.hours, 0),
+  0,
+);
+const expectedDone = projDoc.items.filter((task) => task.status === 'done' && inRep((task.doneAt ?? task.updatedAt).slice(0, 10))).length;
+rec(
+  '本期工时只统计周期内流水',
+  Math.abs(Number(rep?.snapshot?.metrics?.hoursAct) - expectedHours) < 0.01,
+  `hoursAct=${rep?.snapshot?.metrics?.hoursAct} 期望=${expectedHours}`,
+);
+rec('任务完成数按 doneAt 计入', rep?.snapshot?.metrics?.taskDone === expectedDone, `taskDone=${rep?.snapshot?.metrics?.taskDone} 期望=${expectedDone}`);
 {
   const png = await send('Page.captureScreenshot', { format: 'png' });
   await fsp.writeFile('E:/vs_code_js/workbench/_review/v3-report.png', Buffer.from(png.data, 'base64'));
 }
-const dailyToday = rep?.snapshot?.dailyHours?.find((d) => d.date === todayStr)?.hours;
-rec('每日工时柱状按日期归集', Number(dailyToday) === 2, `today=${dailyToday}h`);
+const seedDay = projDoc.items.find((x) => x.id === 'in-week')?.timeLogs?.[0]?.date;
+const dailySeed = rep?.snapshot?.dailyHours?.find((d) => d.date === seedDay)?.hours;
+rec('每日工时柱状按日期归集', Number(dailySeed) === 2, `${seedDay}=${dailySeed}h`);
 
 /* ================= 4b. 仪表盘与周报口径一致 ================= */
 await ev(`location.hash = '#/dashboard'`);
@@ -266,6 +305,91 @@ const dashHours = await ev(`(() => {
   return Number(num.trim());
 })()`);
 rec('仪表盘本周工时与周报一致', Number(dashHours) === Number(rep?.snapshot?.metrics?.hoursAct), `仪表盘=${dashHours}h 周报=${rep?.snapshot?.metrics?.hoursAct}h`);
+
+/* ================= 4c. 工时数字框：上下箭头每次 ±0.5 ================= */
+await ev(`location.hash = '#/projects'`);
+await waitFor('.node-row .node-title');
+await sleep(300);
+await ev(`(() => { const t = document.querySelector('.node-row .node-title'); t.click(); return true; })()`);
+await waitFor('.t-dialog .t-form');
+await sleep(600);
+// 没有流水行就先加一条，保证有输入框可测
+if ((await ev(`document.querySelectorAll('.t-dialog .time-log-row').length`)) === 0) {
+  await clickText('.t-dialog button', '记录一条工时', 800);
+}
+const diag = await ev(`(() => {
+  const dlg = [...document.querySelectorAll('.t-dialog')].filter((d) => d.getBoundingClientRect().height > 10).pop();
+  const row = document.querySelector('.t-dialog .time-log-row');
+  const inp = row?.querySelector('input');
+  return JSON.stringify({ dialog: !!dlg, rows: document.querySelectorAll('.t-dialog .time-log-row').length, hasInput: !!inp, raw: inp?.value ?? null });
+})()`);
+const hoursBefore = await ev(`(() => {
+  const row = document.querySelector('.t-dialog .time-log-row');
+  const inp = row?.querySelector('.t-input-number input');
+  return inp ? Number(inp.value) : null;
+})()`);
+const stepped = await ev(`(() => {
+  const row = document.querySelector('.t-dialog .time-log-row');
+  const up = row?.querySelector('.t-input-number__increase');
+  if (!up) return 'no-arrow';
+  up.click();
+  return 'clicked';
+})()`);
+await sleep(400);
+const hoursAfter = await ev(`(() => {
+  const row = document.querySelector('.t-dialog .time-log-row');
+  const inp = row?.querySelector('.t-input-number input');
+  return inp ? Number(inp.value) : null;
+})()`);
+rec('工时数字框点▲ +0.5', stepped === 'clicked' && Number(hoursAfter) === Number(hoursBefore) + 0.5, `${hoursBefore} → ${hoursAfter}（${stepped}）诊断=${diag}`);
+// 模拟真实点击节奏：两次点击之间留间隔（同 tick 连点会被组件合并成一次）
+const decOnce = `(() => {
+  const row = document.querySelector('.t-dialog .time-log-row');
+  const down = row?.querySelector('.t-input-number__decrease');
+  if (!down) return false;
+  down.click();
+  return true;
+})()`;
+const dec1 = await ev(decOnce);
+await sleep(300);
+const dec2 = await ev(decOnce);
+await sleep(300);
+const downed = dec1 && dec2 ? 'clicked' : 'no-arrow';
+const hoursDown = await ev(`(() => {
+  const row = document.querySelector('.t-dialog .time-log-row');
+  const inp = row?.querySelector('.t-input-number input');
+  return inp ? Number(inp.value) : null;
+})()`);
+rec('工时数字框点▼ -0.5（连点两次 -1）', downed === 'clicked' && Number(hoursDown) === Number(hoursAfter) - 1, `${hoursAfter} → ${hoursDown}`);
+await dialogClick('取消', 700);
+
+/* ================= 4d. 自定义标签（快速添加） ================= */
+await ev(`location.hash = '#/todos'`);
+await sleep(1100);
+const tagTyped = await ev(`(() => {
+  const host = document.querySelector('[data-test="quick-tags"]');
+  if (!host) return 'no-host';
+  const input = host.querySelector('input');
+  if (!input) return 'no-input';
+  input.focus();
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '审计自定义');
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+  return 'ok';
+})()`);
+await sleep(500);
+await ev(`(() => {
+  const f = document.querySelector('.quick-add .t-input input');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(f, '带自定义标签的待办');
+  f.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
+})()`);
+await clickText('button', '添加', 1200);
+const todoDoc = await apiGet('todos');
+const tagged = todoDoc.items.find((t) => t.title === '带自定义标签的待办');
+rec('自定义标签可输入并落盘', tagTyped === 'ok' && tagged?.tags?.includes('审计自定义'), `tags=${JSON.stringify(tagged?.tags)}`);
+const filterVisible = await ev(`document.body.innerText.includes('审计自定义')`);
+rec('新标签出现在标签筛选里', filterVisible === true, '');
 
 /* ================= 5. 待办卡片操作常显 ================= */
 await ev(`location.hash = '#/todos'`);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import { nextOrder, store, newTodo } from '../core/store';
 import type { Priority, Quadrant, Repeat, Todo } from '../core/types';
 import { nowISO, todayISO } from '../core/util';
@@ -10,6 +10,21 @@ const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void;
   (e: 'saved', todo: Todo): void;
 }>();
+
+/** 常用标签：从已有待办里统计，点一下就加进当前这条 */
+const suggestedTags = computed(() => {
+  const counts = new Map<string, number>();
+  for (const t of store.todos) for (const tag of t.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([tag]) => tag)
+    .filter((tag) => !form.tags.includes(tag))
+    .slice(0, 8);
+});
+
+function addTag(tag: string): void {
+  if (!form.tags.includes(tag)) form.tags.push(tag);
+}
 
 const priorityOptions = [
   { label: '高', value: 'high' },
@@ -126,18 +141,18 @@ function save(): void {
     @update:visible="close"
     destroy-on-close
   >
-    <t-form :label-width="92" label-align="right">
+    <t-form :label-width="92" label-align="right" class="dialog-form">
       <t-form-item label="标题">
         <t-input v-model="form.title" placeholder="要做什么？例如：给客户发方案确认邮件" />
       </t-form-item>
 
       <t-row :gutter="12">
-        <t-col :span="12">
+        <t-col :span="6">
           <t-form-item label="优先级">
             <t-select v-model="form.priority" :options="priorityOptions" />
           </t-form-item>
         </t-col>
-        <t-col :span="12">
+        <t-col :span="6">
           <t-form-item label="四象限">
             <t-select v-model="form.quadrant" :options="quadrantOptions" />
           </t-form-item>
@@ -145,35 +160,55 @@ function save(): void {
       </t-row>
 
       <t-row :gutter="12">
-        <t-col :span="8">
+        <t-col :span="6">
           <t-form-item label="归属日期">
             <t-date-picker v-model="form.date" />
           </t-form-item>
         </t-col>
-        <t-col :span="8">
+        <t-col :span="6">
           <t-form-item label="截止时间">
             <t-time-picker v-model="form.dueTime" format="HH:mm" clearable placeholder="可选" />
           </t-form-item>
         </t-col>
-        <t-col :span="8">
+      </t-row>
+
+      <t-row :gutter="12">
+        <t-col :span="6">
           <t-form-item label="重复">
             <t-select v-model="form.repeat" :options="repeatOptions" />
           </t-form-item>
         </t-col>
+        <t-col :span="6">
+          <t-form-item label="提醒时间">
+            <t-date-picker
+              v-model="form.remindAt"
+              enable-time-picker
+              format="YYYY-MM-DD HH:mm"
+              clearable
+              placeholder="到点提醒"
+            />
+          </t-form-item>
+        </t-col>
       </t-row>
 
-      <t-form-item label="提醒时间">
-        <t-date-picker
-          v-model="form.remindAt"
-          enable-time-picker
-          format="YYYY-MM-DD HH:mm"
-          clearable
-          placeholder="到点后页面顶部提醒"
-        />
-      </t-form-item>
-
       <t-form-item label="标签">
-        <t-tag-input v-model="form.tags" placeholder="如：沟通 / 文档" :clearable="true" />
+        <div class="tag-field">
+          <t-tag-input v-model="form.tags" placeholder="输入后回车新增自定义标签，如：沟通 / 文档" :clearable="true" data-test="todo-tags" />
+          <div v-if="suggestedTags.length" class="tag-suggest">
+            <span class="muted">常用：</span>
+            <t-tag
+              v-for="tag in suggestedTags"
+              :key="tag"
+              size="small"
+              variant="light"
+              theme="default"
+              class="tag-chip"
+              @click="addTag(tag)"
+            >
+              #{{ tag }}
+            </t-tag>
+          </div>
+        </div>
       </t-form-item>
 
       <t-form-item label="描述">

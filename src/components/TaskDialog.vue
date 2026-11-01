@@ -156,53 +156,70 @@ function save(): void {
     @update:visible="close"
     destroy-on-close
   >
-    <t-form :label-width="92" label-align="right" class="task-form">
+    <t-form :label-width="92" label-align="right" class="task-form dialog-form">
       <t-form-item label="名称">
         <t-input v-model="form.title" placeholder="例如：梳理盘点流程" />
       </t-form-item>
 
       <t-row :gutter="12">
-        <t-col :span="8">
+        <t-col :span="6">
           <t-form-item label="状态">
             <t-select v-model="form.status" :options="statusOptions" />
           </t-form-item>
         </t-col>
-        <t-col :span="8">
+        <t-col :span="6">
           <t-form-item label="优先级">
             <t-select v-model="form.priority" :options="priorityOptions" />
-          </t-form-item>
-        </t-col>
-        <t-col :span="8">
-          <t-form-item label="截止">
-            <t-date-picker v-model="form.due" clearable placeholder="选择日期" />
           </t-form-item>
         </t-col>
       </t-row>
 
       <t-row :gutter="12">
-        <t-col :span="12">
-          <t-form-item label="预计工时">
-            <t-input-number v-model="form.estHours" :min="0" :step="0.5" theme="normal" placeholder="小时" />
+        <t-col :span="6">
+          <t-form-item label="截止日期">
+            <t-date-picker v-model="form.due" clearable placeholder="选择日期" />
           </t-form-item>
         </t-col>
-        <t-col :span="12">
-          <t-form-item label="实际工时">
-            <div class="hours-field">
-              <t-input-number v-model="form.actHours" :min="0" :step="0.5" theme="normal" placeholder="小时" :disabled="hasLogs" />
-              <span class="muted">
-                {{ hasLogs ? `由工时流水自动合计 ${logTotal}h` : '可直接填总时长，也可在下方按天记录' }}
-              </span>
-            </div>
+        <t-col :span="6">
+          <t-form-item label="预计工时">
+            <t-input-number v-model="form.estHours" theme="column" :min="0" :max="999" :step="0.5" :decimal-places="1" placeholder="小时" />
           </t-form-item>
         </t-col>
       </t-row>
+
+      <t-form-item label="实际工时">
+        <div class="hours-field">
+          <t-input-number
+            v-model="form.actHours"
+            theme="column"
+            :min="0"
+            :max="999"
+            :step="0.5"
+            :decimal-places="1"
+            placeholder="小时"
+            :disabled="hasLogs"
+          />
+          <span class="muted">
+            {{ hasLogs ? `由 ${form.timeLogs.length} 条工时流水自动合计 ${logTotal}h` : '可直接填总时长，也可在下方按天记录' }}
+          </span>
+        </div>
+      </t-form-item>
 
       <t-form-item label="工时流水">
         <div class="time-logs">
           <div v-if="!hasLogs" class="time-log-empty">还没有流水。按天记录后，周报会按日期自动汇总工时。</div>
           <div v-for="log in form.timeLogs" :key="log.id" class="time-log-row">
             <t-date-picker v-model="log.date" placeholder="日期" />
-            <t-input-number v-model="log.hours" :min="0" :step="0.5" theme="normal" />
+            <t-input-number
+              v-model="log.hours"
+              theme="column"
+              :min="0"
+              :max="24"
+              :step="0.5"
+              :decimal-places="1"
+              placeholder="h"
+              title="可手输，点上下箭头每次 ±0.5"
+            />
             <t-input v-model="log.note" placeholder="备注（可选）" />
             <t-button variant="text" theme="danger" shape="square" size="small" title="删除这条流水" aria-label="删除这条流水" @click="removeLog(log.id)">
               <DeleteIcon />

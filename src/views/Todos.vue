@@ -35,7 +35,7 @@ const priorityOptions = [
 ];
 const quadrantOptions = QUADRANT_ORDER.map((q) => ({ label: QUADRANT_LABEL[q], value: q }));
 
-const quick = reactive({ title: '', priority: 'mid' as Priority, quadrant: 'q2' as Quadrant });
+const quick = reactive({ title: '', priority: 'mid' as Priority, quadrant: 'q2' as Quadrant, tags: [] as string[] });
 
 const items = computed<Todo[]>(() =>
   store.todos
@@ -80,11 +80,13 @@ function addQuick(): void {
     title,
     priority: quick.priority,
     quadrant: quick.quadrant,
+    tags: [...quick.tags],
     order: nextOrder(store.todos, viewDate.value, quick.quadrant),
   });
   store.todos.push(todo);
   store.touch('todos');
   quick.title = '';
+  quick.tags = [];
   toast('已添加');
 }
 
@@ -275,8 +277,9 @@ watch(
 
     <div class="toolbar quick-add">
       <t-input v-model="quick.title" placeholder="快速记一条待办，回车即添加" class="grow" @enter="addQuick" />
-      <t-select v-model="quick.priority" :options="priorityOptions" style="width: 120px" data-test="quick-priority" />
-      <t-select v-model="quick.quadrant" :options="quadrantOptions" style="width: 150px" data-test="quick-quadrant" />
+      <t-select v-model="quick.priority" :options="priorityOptions" style="width: 96px" data-test="quick-priority" />
+      <t-select v-model="quick.quadrant" :options="quadrantOptions" style="width: 172px" data-test="quick-quadrant" />
+      <t-tag-input v-model="quick.tags" placeholder="标签（回车新增）" style="width: 184px" :clearable="true" data-test="quick-tags" />
       <t-button theme="primary" @click="addQuick">
         <template #icon><AddIcon /></template>
         添加

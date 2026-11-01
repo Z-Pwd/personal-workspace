@@ -99,23 +99,98 @@ body {
   overflow-y: auto;
   padding-right: 6px;
 }
-.hours-field {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
 .time-logs {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
 }
+.time-logs > .t-button {
+  align-self: flex-start;
+}
+/* 弹窗表单统一节奏：行距加大、控件等宽 */
+.dialog-form {
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.dialog-form .t-form__item {
+  margin-bottom: 20px;
+}
+.dialog-form .t-form__item:last-child {
+  margin-bottom: 4px;
+}
+.dialog-form .t-form__controls-content > .t-input,
+.dialog-form .t-form__controls-content > .t-select,
+.dialog-form .t-form__controls-content > .t-date-picker,
+.dialog-form .t-form__controls-content > .t-time-picker,
+.dialog-form .t-form__controls-content > .t-input-number,
+.dialog-form .t-form__controls-content > .t-textarea,
+.dialog-form .t-form__controls-content > .t-tag-input {
+  width: 100%;
+}
+
+/* 工时流水一行：日期 / 数字框 / 备注 / 删除 */
 .time-log-row {
   display: grid;
-  grid-template-columns: 132px 104px 1fr 32px;
-  gap: 6px;
+  grid-template-columns: 140px 96px minmax(0, 1fr) 34px;
+  gap: 8px;
   align-items: center;
+}
+.time-log-row > * {
+  min-width: 0;
+}
+.time-log-row .t-input-number {
+  width: 100%;
+}
+
+/* 工时字段 */
+.hours-field {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hours-field .t-input-number {
+  width: 100%;
+}
+.hours-field .muted {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* 数字框上下箭头常显（默认只有 hover 才 opacity:1，触屏点不到） */
+.dialog-form .t-input-number--column .t-input-number__increase,
+.dialog-form .t-input-number--column .t-input-number__decrease {
+  opacity: 1;
+  visibility: visible;
+}
+.dialog-form .t-input-number--column .t-input-number__increase:hover,
+.dialog-form .t-input-number--column .t-input-number__decrease:hover {
+  background: var(--td-bg-color-container-hover);
+}
+
+/* 日期/时间控件在双列里允许收缩，避免挤到换行 */
+.dialog-form .t-date-picker,
+.dialog-form .t-time-picker {
+  min-width: 0;
+}
+
+/* 标签：自定义输入 + 常用快选 */
+.tag-field {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tag-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.tag-chip {
+  cursor: pointer;
 }
 .time-log-empty {
   font-size: 12px;
