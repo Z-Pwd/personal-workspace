@@ -1,9 +1,18 @@
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import Components from 'unplugin-vue-components/vite';
+import { TDesignResolver } from 'unplugin-vue-components/resolvers';
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    // 按需引入 TDesign 组件与样式（不注册全量组件，包体积从 1.4MB 降到 ~700KB）
+    Components({
+      dts: false,
+      resolvers: [TDesignResolver({ library: 'vue-next', importStyle: 'css' })],
+    }),
+  ],
   base: './',
   resolve: {
     alias: {

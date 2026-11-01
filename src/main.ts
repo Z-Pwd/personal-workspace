@@ -1,7 +1,5 @@
 /** 应用入口：加载数据后再挂载，避免首屏闪空状态 */
 import { createApp } from 'vue';
-import TDesign from 'tdesign-vue-next';
-import 'tdesign-vue-next/es/style/index.css';
 
 import App from './App.vue';
 import router from './router';
@@ -13,7 +11,6 @@ import './styles.css';
 applyTheme(getTheme());
 
 const app = createApp(App);
-app.use(TDesign);
 app.use(router);
 
 void (async () => {

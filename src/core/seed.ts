@@ -8,6 +8,7 @@ export function hasAnyData(): boolean {
 
 export function loadDemoData(): void {
   const today = todayISO();
+  const doneAt = (daysAgo: number): string => `${addDaysISO(today, -daysAgo)}T18:00:00.000Z`;
 
   const project = newTask({
     title: '固定资产盘点系统（示例项目）',
@@ -21,6 +22,7 @@ export function loadDemoData(): void {
   const phase1 = newTask({
     title: '需求与流程梳理',
     status: 'done',
+    doneAt: doneAt(2),
     priority: 'high',
     due: addDaysISO(today, -2),
     tags: ['文档'],
@@ -30,18 +32,22 @@ export function loadDemoData(): void {
     newTask({
       title: '访谈财务 / 行政',
       status: 'done',
+      doneAt: doneAt(3),
       priority: 'high',
       tags: ['沟通'],
       estHours: 2,
       actHours: 2.5,
+      timeLogs: [{ id: 'seed-log-1', date: addDaysISO(today, -3), hours: 2.5, note: '财务 1h + 行政 1.5h' }],
     }),
     newTask({
       title: '输出流程图 v1',
       status: 'done',
+      doneAt: doneAt(1),
       priority: 'mid',
       tags: ['文档'],
       estHours: 4,
       actHours: 4.5,
+      timeLogs: [{ id: 'seed-log-2', date: addDaysISO(today, -1), hours: 4.5, note: '' }],
     }),
   );
 
@@ -63,6 +69,7 @@ export function loadDemoData(): void {
   const archiveDemo = newTask({
     title: '10 月部门例会纪要整理（示例）',
     status: 'done',
+    doneAt: doneAt(6),
     priority: 'mid',
     tags: ['文档'],
     estHours: 1.5,

@@ -9,7 +9,8 @@
     "start": "node server/server.mjs",
     "test": "node test/smoke-vue.mjs",
     "dev": "vite",
-    "audit": "node test/audit.mjs"
+    "audit": "node test/audit.mjs",
+    "test:v3": "node test/regression-v3.mjs"
   },
   "dependencies": {
     "tdesign-icons-vue-next": "^0.4.11",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.4",
     "typescript": "^5.7.2",
+    "unplugin-vue-components": "^32.1.0",
     "vite": "^6.4.5"
   }
 }

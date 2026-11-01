@@ -1,5 +1,7 @@
 /** TDesign 的提示与确认弹窗封装（替代原来的自研 toast/modal） */
 import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next';
+import 'tdesign-vue-next/es/message/style/index.css';
+import 'tdesign-vue-next/es/dialog/style/index.css';
 
 export type ToastKind = 'ok' | 'err' | 'info';
 

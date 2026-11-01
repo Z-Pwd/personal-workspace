@@ -1,4 +1,5 @@
 /** 项目树的通用计算：遍历、查找、进度汇总、工时合计 */
+import { totalHours } from './task-ops';
 import type { Priority, Project, Quadrant, Task } from './types';
 
 export interface NodeHit {
@@ -44,7 +45,7 @@ export function progressOf(task: Task): number {
 export function hoursOf(task: Task): { est: number; act: number } {
   const kids = task.children.filter((c) => !c.deletedAt);
   // 有子任务时只汇总子级，避免父级工时被重复计算
-  if (!kids.length) return { est: task.estHours ?? 0, act: task.actHours ?? 0 };
+  if (!kids.length) return { est: task.estHours ?? 0, act: totalHours(task) };
   let est = 0;
   let act = 0;
   for (const c of kids) {
@@ -52,6 +53,8 @@ export function hoursOf(task: Task): { est: number; act: number } {
     est += h.est;
     act += h.act;
   }
+  // 父任务自己也有工时流水时，一并计入（显式记录不丢）
+  if (task.timeLogs && task.timeLogs.length > 0) act += totalHours(task);
   return { est, act };
 }
 

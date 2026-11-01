@@ -1,5 +1,6 @@
 /** 跨页面的动作：把项目任务拉进今日待办、勾选待办、重复任务生成下一期 */
 import { newTodo, nextOrder, store } from './store';
+import { setTaskStatus } from './task-ops';
 import { quadrantOf } from './tree';
 import type { Task, Todo } from './types';
 import { toast } from './toast';
@@ -43,13 +44,11 @@ function syncLinkedTask(todo: Todo, done: boolean): void {
   const node = target as Task | null;
   if (!node) return;
   if (done && node.status !== 'done') {
-    node.status = 'done';
-    node.updatedAt = nowISO();
+    setTaskStatus(node, 'done');
     store.touch('projects');
     toast('项目里这条任务也标记为已完成', 'info');
   } else if (!done && node.status === 'done') {
-    node.status = 'doing';
-    node.updatedAt = nowISO();
+    setTaskStatus(node, 'doing');
     store.touch('projects');
   }
 }

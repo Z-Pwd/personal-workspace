@@ -121,10 +121,12 @@ const noteText = computed(() => props.todo.note.split('\n').slice(0, 3).join(' '
 .todo-actions {
   display: flex;
   gap: 0;
-  opacity: 0;
+  /* 常显：触屏 / 触控板也能直接点到，不再依赖 hover */
+  opacity: 0.55;
   transition: opacity 0.15s;
 }
-.todo-card:hover .todo-actions {
+.todo-card:hover .todo-actions,
+.todo-card:focus-within .todo-actions {
   opacity: 1;
 }
 </style>

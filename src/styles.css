@@ -94,6 +94,34 @@ body {
   padding: 10px 4px 2px;
   border-top: 1px solid var(--td-component-stroke);
 }
+.task-form {
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.hours-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.time-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.time-log-row {
+  display: grid;
+  grid-template-columns: 132px 104px 1fr 32px;
+  gap: 6px;
+  align-items: center;
+}
+.time-log-empty {
+  font-size: 12px;
+  color: var(--td-text-color-placeholder);
+  padding: 2px 0 4px;
+}
 .save-tag {
   max-width: 150px;
   overflow: hidden;

@@ -1,5 +1,6 @@
 /** 周报 / 月报：周期计算、数据汇总、Markdown / 纯文本导出 */
 import { store } from './store';
+import { doneDateOf, hoursInRange } from './task-ops';
 import { flatten, progressOf } from './tree';
 import {
   PRIORITY_LABEL,
@@ -60,7 +61,7 @@ function metricsOf(start: string, end: string): Omit<ReportMetrics, 'prevTodoDon
   }
 
   const hits = flatten(store.projects);
-  const doneTasks = hits.filter((h) => h.node.status === 'done' && inR(h.node.updatedAt.slice(0, 10)));
+  const doneTasks = hits.filter((h) => h.node.status === 'done' && inR(doneDateOf(h.node)));
 
   return {
     todoTotal: todos.length,
@@ -72,7 +73,8 @@ function metricsOf(start: string, end: string): Omit<ReportMetrics, 'prevTodoDon
     taskDone: doneTasks.length,
     taskOpen: hits.filter((h) => h.node.status !== 'done').length,
     hoursEst: sum(doneTasks, (h) => h.node.estHours ?? 0),
-    hoursAct: sum(doneTasks, (h) => h.node.actHours ?? 0),
+    // 工时按「流水日期」落在周期内，而不是按任务完成日一次性计入
+    hoursAct: sum(hits, (h) => hoursInRange(h.node, start, end)),
     ideaNew: store.ideas.filter((i) => inR(i.createdAt.slice(0, 10))).length,
     ideaAdopted: store.ideas.filter((i) => i.convertedTo && inR(i.updatedAt.slice(0, 10))).length,
   };
@@ -86,19 +88,19 @@ export function buildReport(kind: ReportKind, start: string, end: string): Repor
   const inR = (d: string): boolean => d >= start && d <= end;
 
   const hits = flatten(store.projects);
-  const doneHits = hits.filter((h) => h.node.status === 'done' && inR(h.node.updatedAt.slice(0, 10)));
+  const doneHits = hits.filter((h) => h.node.status === 'done' && inR(doneDateOf(h.node)));
 
   const projects: ReportProjectLine[] = store.projects
     .filter((p) => !p.deletedAt && !p.archived)
     .map((p) => {
       const descendants = flatten([p]);
-      const done = descendants.filter((h) => h.node.status === 'done' && inR(h.node.updatedAt.slice(0, 10)));
+      const done = descendants.filter((h) => h.node.status === 'done' && inR(doneDateOf(h.node)));
       return {
         id: p.id,
         title: p.title,
         progress: progressOf(p),
         doneInPeriod: done.length,
-        hoursAct: sum(done, (h) => h.node.actHours ?? 0),
+        hoursAct: Math.round(sum(descendants, (h) => hoursInRange(h.node, start, end)) * 10) / 10,
         due: p.due,
         status: p.status,
       };
@@ -154,7 +156,7 @@ export function buildReport(kind: ReportKind, start: string, end: string): Repor
       id: h.node.id,
       title: h.node.title,
       project: h.root.title,
-      hours: h.node.actHours ?? 0,
+      hours: hoursInRange(h.node, start, end),
     }))
     .sort((a, b) => b.hours - a.hours)
     .slice(0, 5);
@@ -162,10 +164,7 @@ export function buildReport(kind: ReportKind, start: string, end: string): Repor
   const dailyHours: { date: string; hours: number }[] = [];
   for (let i = 0; i < periodLength(start, end); i++) {
     const day = addDaysISO(start, i);
-    const hours = sum(
-      doneHits.filter((h) => h.node.updatedAt.slice(0, 10) === day),
-      (h) => h.node.actHours ?? 0,
-    );
+    const hours = sum(hits, (h) => hoursInRange(h.node, day, day));
     dailyHours.push({ date: day, hours: Math.round(hours * 10) / 10 });
   }
 

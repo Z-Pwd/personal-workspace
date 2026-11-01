@@ -7,6 +7,7 @@ import type { ProjectCtx } from '../components/project-ctx';
 import { store } from '../core/store';
 import { findNode, flatten, moveWithin, removeFrom } from '../core/tree';
 import { addTaskToToday } from '../core/actions';
+import { setTaskStatus } from '../core/task-ops';
 import { PRIORITY_LABEL, STATUS_LABEL, type Priority, type Status, type Task } from '../core/types';
 import { nowISO } from '../core/util';
 import { confirmAction, toast } from '../core/toast';
@@ -153,8 +154,7 @@ async function batchStatus(value: string | number): Promise<void> {
   for (const id of selected) {
     const hit = findNode(store.projects, id);
     if (!hit) continue;
-    hit.node.status = status;
-    hit.node.updatedAt = nowISO();
+    setTaskStatus(hit.node, status);
   }
   store.touch('projects');
   toast(`已把 ${selected.size} 项改为「${STATUS_LABEL[status]}」`);

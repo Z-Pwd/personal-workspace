@@ -6,6 +6,15 @@ export type Quadrant = 'q1' | 'q2' | 'q3' | 'q4';
 export type IdeaStatus = 'inbox' | 'adopted' | 'archived';
 export type Repeat = 'none' | 'daily' | 'weekly';
 
+/** 一条工时流水：某天在某任务上投入了多少小时 */
+export interface TimeLog {
+  id: string;
+  /** 发生日期 yyyy-mm-dd */
+  date: string;
+  hours: number;
+  note: string;
+}
+
 /** 项目 / 任务：同一个类型，靠 children 递归成树；顶层数组元素即为「项目」 */
 export interface Task {
   id: string;
@@ -17,10 +26,15 @@ export interface Task {
   due: string | null;
   tags: string[];
   estHours: number | null;
+  /** 实际工时合计：有流水时等于流水之和，无流水时是手填值 */
   actHours: number | null;
+  /** 工时流水（按天记录，周报按日期聚合） */
+  timeLogs: TimeLog[];
   children: Task[];
   createdAt: string;
   updatedAt: string;
+  /** 完成时间；仅 status === 'done' 时有值 */
+  doneAt: string | null;
   archived: boolean;
   /** 软删除时间；非空表示在回收站 */
   deletedAt: string | null;

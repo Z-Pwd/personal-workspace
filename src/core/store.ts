@@ -1,5 +1,6 @@
 /** 全局状态 + 自动保存（防抖、串行写入、版本冲突处理） */
 import { reactive } from 'vue';
+import { migrateProjects } from './task-ops';
 import { api, type ApiError } from './api';
 import type { Idea, Project, Report, Task, Todo } from './types';
 import { toast } from './toast';
@@ -81,6 +82,14 @@ class Store {
     if (p) {
       this.projects = p.items;
       this.revs.projects = p.rev;
+      // 旧数据结构升级（补 doneAt / timeLogs），幂等，有改动才写盘
+      const migrated = migrateProjects(this.projects);
+      if (migrated.changed) {
+        this.dirty.add('projects');
+        window.setTimeout(() => {
+          void this.flush();
+        }, 120);
+      }
     }
     if (t) {
       this.todos = t.items;
@@ -208,9 +217,11 @@ export function newTask(partial: Partial<Task> = {}): Task {
     tags: [],
     estHours: null,
     actHours: null,
+    timeLogs: [],
     children: [],
     createdAt: t,
     updatedAt: t,
+    doneAt: null,
     archived: false,
     deletedAt: null,
     ...partial,

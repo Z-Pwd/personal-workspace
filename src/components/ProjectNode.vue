@@ -2,6 +2,7 @@
 import { computed, inject } from 'vue';
 import { ChevronDownIcon, ChevronRightIcon, MoreIcon } from 'tdesign-icons-vue-next';
 import { store } from '../core/store';
+import { setTaskStatus } from '../core/task-ops';
 import { hoursOf, progressOf } from '../core/tree';
 import { PRIORITY_LABEL, type Status, type Task } from '../core/types';
 import { dueClass, dueLabel, fmtHours } from '../core/util';
@@ -47,8 +48,7 @@ function onMenu(data: { value?: string }): void {
 }
 
 function onStatus(value: unknown): void {
-  props.node.status = value as Status;
-  props.node.updatedAt = new Date().toISOString();
+  setTaskStatus(props.node, value as Status);
   store.touch('projects');
 }
 

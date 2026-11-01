@@ -2,10 +2,11 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { store } from '../core/store';
+import { doneDateOf, hoursInRange } from '../core/task-ops';
 import { flatten, hoursOf, progressOf } from '../core/tree';
 import { toggleTodo } from '../core/actions';
 import { PRIORITY_LABEL, PRIORITY_ORDER, QUADRANT_LABEL, type Todo } from '../core/types';
-import { dueClass, dueLabel, fmtHours, timeAgo, todayISO, weekStart } from '../core/util';
+import { addDaysISO, dueClass, dueLabel, fmtHours, timeAgo, todayISO, weekStart } from '../core/util';
 import { hasAnyData, loadDemoData } from '../core/seed';
 import { toast } from '../core/toast';
 
@@ -31,11 +32,16 @@ const avgProgress = computed(() => {
 const inboxIdeas = computed(() => store.ideas.filter((i) => i.status === 'inbox'));
 
 const weekStartISO = weekStart();
+const weekEndISO = addDaysISO(weekStartISO, 6);
 const weekDoneTasks = computed(() =>
   flatten(store.projects)
-    .filter((h) => !h.node.archived && h.node.status === 'done' && h.node.updatedAt.slice(0, 10) >= weekStartISO)
+    .filter((h) => !h.node.archived && h.node.status === 'done' && doneDateOf(h.node) >= weekStartISO)
 );
-const weekHours = computed(() => weekDoneTasks.value.reduce((acc, h) => acc + (h.node.actHours ?? 0), 0));
+// 与周报口径一致：按工时流水的日期落周
+const weekHours = computed(() => {
+  const total = flatten(store.projects).reduce((acc, h) => acc + hoursInRange(h.node, weekStartISO, weekEndISO), 0);
+  return Math.round(total * 10) / 10;
+});
 const weekDoneTodos = computed(
   () => store.todos.filter((t) => t.done && (t.doneAt ?? '').slice(0, 10) >= weekStartISO).length,
 );
@@ -51,8 +57,8 @@ const topProjects = computed(() =>
 
 const hourRows = computed(() => {
   const map = new Map<string, number>();
-  for (const hit of weekDoneTasks.value) {
-    const hours = hit.node.actHours ?? 0;
+  for (const hit of flatten(store.projects)) {
+    const hours = hoursInRange(hit.node, weekStartISO, weekEndISO);
     if (!hours) continue;
     map.set(hit.root.title, (map.get(hit.root.title) ?? 0) + hours);
   }

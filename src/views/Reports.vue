@@ -366,7 +366,7 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
         </t-card>
 
         <t-card :bordered="false" title="每日工时分布">
-          <template #actions><span class="muted">按任务完成日期统计</span></template>
+          <template #actions><span class="muted">按工时流水日期统计</span></template>
           <BarChart :data="current.snapshot.dailyHours.map((d) => ({ label: d.date.slice(5), value: d.hours }))" unit="h" />
         </t-card>
       </div>
