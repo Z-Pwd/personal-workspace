@@ -1,5 +1,7 @@
 # 个人工作台 v2（Vue 3 + TDesign）
 
+> 源码仓库：<https://github.com/Z-Pwd/personal-workspace>　·　本地运行、数据自持
+
 把 txt / Word 里的工作量记录，变成**能拆解、能统计、能复盘**的本地工作台。
 
 - **前端**：Vue 3 + **TDesign（腾讯开源组件库，tdesign-vue-next）** + TypeScript + Vite
@@ -115,6 +117,8 @@ workbench/
 ## 六、开发
 
 ```bash
+git clone https://github.com/Z-Pwd/personal-workspace.git
+cd personal-workspace
 npm install          # 首次
 npm run build        # 构建 dist/（等价于双击 重新编译.bat）
 npm start            # 启动本地服务
