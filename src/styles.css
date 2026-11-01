@@ -108,6 +108,14 @@ body {
 .time-logs > .t-button {
   align-self: flex-start;
 }
+/* 弹窗底部按钮（ConfirmHost / PromptDialog 等共用） */
+.dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
 /* 弹窗表单统一节奏：行距加大、控件等宽 */
 .dialog-form {
   max-height: 62vh;

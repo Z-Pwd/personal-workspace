@@ -12,6 +12,7 @@ import {
   SettingIcon,
   SunnyIcon,
 } from 'tdesign-icons-vue-next';
+import ConfirmHost from './components/ConfirmHost.vue';
 import { store } from './core/store';
 import { searchAll, type HitKind, type SearchHit } from './core/search';
 import { requestFocus } from './core/focus';
@@ -212,5 +213,7 @@ function retry(): void {
         </router-view>
       </div>
     </main>
+
+    <ConfirmHost />
   </div>
 </template>

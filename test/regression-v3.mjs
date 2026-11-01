@@ -417,6 +417,83 @@ const distSize = (dir) => {
 const sizeMb = distSize('E:/vs_code_js/workbench/dist') / 1024 / 1024;
 rec('包体 < 1.6MB（按需引入生效）', sizeMb < 1.6, `${sizeMb.toFixed(2)} MB`);
 
+/* ================= 6. 清空全部数据（高危流程） ================= */
+await ev(`location.hash = '#/settings'`);
+await sleep(1400);
+const beforeCounts = {};
+for (const n of ['projects', 'todos', 'ideas', 'reports']) beforeCounts[n] = (await apiGet(n)).items.length;
+const backupsBefore = (await (await fetch(`${APP}/api/backups`)).json()).files?.length ?? 0;
+
+await ev(`(() => {
+  const row = [...document.querySelectorAll('.setting-row')].find((r) => r.innerText.includes('清空全部数据'));
+  const b = row?.querySelector('button');
+  if (!b) return false;
+  b.click();
+  return true;
+})()`);
+await sleep(900);
+const firstConfirm = await dialogClick('确定', 1000);
+
+const promptState = async () => ev(`(() => {
+  const ok = document.querySelector('[data-test="prompt-ok"]');
+  const inp = document.querySelector('[data-test="prompt-input"] input, [data-test="prompt-input"]');
+  if (!ok) return JSON.stringify({ btn: false, input: !!inp });
+  return JSON.stringify({ btn: true, input: !!inp, disabled: ok.disabled || ok.classList.contains('t-is-disabled') });
+})()`);
+const setPrompt = async (text) => ev(`(() => {
+  const inp = document.querySelector('[data-test="prompt-input"] input');
+  if (!inp) return false;
+  inp.focus();
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(inp, ${JSON.stringify(text)});
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
+})()`);
+
+const st1 = JSON.parse(await promptState());
+rec('二次确认弹窗出现且有输入框', firstConfirm && st1.btn && st1.input, JSON.stringify(st1));
+rec('未输入时「确定清空」禁用', st1.disabled === true, `disabled=${st1.disabled}`);
+
+// 取消路径：不应删除任何数据
+await ev(`(() => { const b = document.querySelector('[data-test="prompt-cancel"]'); if (b) b.click(); return true; })()`);
+await sleep(900);
+const afterCancel = {};
+for (const n of ['projects', 'todos', 'ideas', 'reports']) afterCancel[n] = (await apiGet(n)).items.length;
+rec('取消后数据未被清空', JSON.stringify(afterCancel) === JSON.stringify(beforeCounts), JSON.stringify(afterCancel));
+
+// 重新走一遍流程继续测试
+await ev(`(() => {
+  const row = [...document.querySelectorAll('.setting-row')].find((r) => r.innerText.includes('清空全部数据'));
+  row?.querySelector('button')?.click();
+  return true;
+})()`);
+await sleep(900);
+await dialogClick('确定', 1000);
+
+await setPrompt('随便写点');
+await sleep(350);
+const st2 = JSON.parse(await promptState());
+rec('输入不匹配时仍禁用', st2.disabled === true, `disabled=${st2.disabled}`);
+
+await setPrompt('清空');
+await sleep(350);
+const st3 = JSON.parse(await promptState());
+rec('输入「清空」后可点击', st3.disabled === false, `disabled=${st3.disabled}`);
+
+await ev(`(() => { const b = document.querySelector('[data-test="prompt-ok"]'); if (b) b.click(); return true; })()`);
+await sleep(2200);
+
+const afterCounts = {};
+for (const n of ['projects', 'todos', 'ideas', 'reports']) afterCounts[n] = (await apiGet(n)).items.length;
+rec('清空后四个文件都为 0 条', Object.values(afterCounts).every((v) => v === 0), `前=${JSON.stringify(beforeCounts)} 后=${JSON.stringify(afterCounts)}`);
+const backupsAfter = (await (await fetch(`${APP}/api/backups`)).json()).files?.length ?? 0;
+rec('清空前自动生成了备份', backupsAfter > backupsBefore, `${backupsBefore} → ${backupsAfter} 份`);
+
+await ev(`location.hash = '#/dashboard'`);
+await sleep(1600);
+const emptyState = await ev(`document.body.innerText.includes('先看看示例数据') || document.body.innerText.includes('开始')`);
+const cleared = await ev(`document.body.innerText.includes('已清空')`);
+rec('页面回到空状态', emptyState === true || cleared === true, `empty=${emptyState} toast=${cleared}`);
+
 /* ================= 收尾 ================= */
 rec('全流程无控制台报错', errors.length === 0, errors.slice(0, 2).join(' | '));
 await fetch(`${APP}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataDir: REAL }) });

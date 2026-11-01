@@ -5,7 +5,8 @@ import { loadDemoData } from '../core/seed';
 import { store } from '../core/store';
 import { applyTheme, theme } from '../core/theme';
 import { fmtDateTime, nowISO } from '../core/util';
-import { confirmAction, promptAction, toast } from '../core/toast';
+import PromptDialog from '../components/PromptDialog.vue';
+import { confirmAction, toast } from '../core/toast';
 
 const dataDir = ref(store.dataDir);
 const backups = ref<BackupFile[]>([]);
@@ -160,13 +161,22 @@ async function clearTrash(): Promise<void> {
   toast('回收站已清空');
 }
 
+const clearPromptVisible = ref(false);
+
+/** 第一步：普通确认；第二步：输入「清空」二次确认（用组件渲染，避免插件 body 传 DOM 的坑） */
 async function clearAll(): Promise<void> {
   if (!(await confirmAction('清空全部数据？操作前会自动做一次全量备份。'))) return;
-  if (!(await promptAction('这是不可撤销的操作，请输入「清空」两个字确认：', '清空'))) return;
+  clearPromptVisible.value = true;
+}
+
+/** 第二步确认后真正执行清空，并回读校验 */
+async function doClearAll(): Promise<void> {
+  clearPromptVisible.value = false;
+  let backed = true;
   try {
     await api.backupAll();
   } catch {
-    /* 备份失败也允许继续，用户已确认 */
+    backed = false;
   }
   store.projects = [];
   store.todos = [];
@@ -177,7 +187,9 @@ async function clearAll(): Promise<void> {
   store.touch('ideas');
   store.touch('reports');
   await store.flush();
-  toast('已清空');
+  const left = store.projects.length + store.todos.length + store.ideas.length + store.reports.length;
+  if (left === 0) toast(backed ? '已清空全部数据（已自动备份）' : '已清空（备份失败，请注意）', backed ? 'ok' : 'err');
+  else toast(`清空未完成，仍有 ${left} 条数据`, 'err');
 }
 
 function loadDemo(): void {
@@ -277,6 +289,16 @@ function onThemeChange(value: boolean): void {
         <t-button size="small" theme="danger" variant="outline" @click="clearAll">清空</t-button>
       </div>
     </t-card>
+
+    <PromptDialog
+      :visible="clearPromptVisible"
+      :message="'这是不可撤销的操作，请输入「清空」两个字确认：'"
+      expect="清空"
+      confirm-text="确定清空"
+      @update:visible="clearPromptVisible = $event"
+      @cancel="clearPromptVisible = false"
+      @confirm="doClearAll"
+    />
 
     <t-dialog v-model:visible="backupVisible" header="备份文件列表" width="640px" :footer="false"
     destroy-on-close
