@@ -11,6 +11,9 @@ _review/
 test/**/*.result.json
 *.log
 
+# 封面图生成过程中的中间 HTML（图片已入库，HTML 可随时用 scripts/cover.mjs 重新生成）
+docs/*.html
+
 # 编辑器/系统
 .vscode/
 .idea/

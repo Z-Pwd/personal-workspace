@@ -1,11 +1,19 @@
 # 个人工作台 v2（Vue 3 + TDesign）
 
-> 源码仓库：<https://github.com/Z-Pwd/personal-workspace>　·　本地运行、数据自持
+> 把工作量统计从 txt / Word 里解放出来的本地工作台　·　源码仓库 <https://github.com/Z-Pwd/personal-workspace>
+
+![Vue 3](https://img.shields.io/badge/Vue-3.5-42b883?logo=vue.js&logoColor=white)
+![TDesign](https://img.shields.io/badge/UI-TDesign%20%E8%85%BE%E8%AE%AF%E7%BB%84%E4%BB%B6%E5%BA%93-0052d9)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
+![Local](https://img.shields.io/badge/Data-100%25%20Local-success)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+<img src="docs/cover.png" alt="个人工作台" width="100%" />
 
 把 txt / Word 里的工作量记录，变成**能拆解、能统计、能复盘**的本地工作台。
 
 - **前端**：Vue 3 + **TDesign（腾讯开源组件库，tdesign-vue-next）** + TypeScript + Vite
-- **存储**：JSON 文件，落在你指定的文件夹（默认 `E:\vs_code_js\workbench\data`）
+- **存储**：JSON 文件，落在你指定的文件夹（默认 `项目目录/data`，设置页可改）
 - **本地服务**：Node.js 标准库（`http` + `fs`），零第三方依赖，负责托管页面 + 读写 JSON
 - **离线可用**：所有依赖都打包进 `dist/`，运行时不访问 CDN，也不上传任何数据
 
@@ -30,6 +38,8 @@
 设置页可改数据目录；每个文件带 `rev` 版本号，多标签页同时开会提示冲突；写入是「先写 .tmp 再改名」的原子操作，文件损坏时会另存 `.corrupt-时间戳` 现场。
 
 ## 三、功能
+
+<img src="docs/features.png" alt="功能演示" width="100%" />
 
 ### 项目管理
 - 多级树：项目 → 子任务 → 子子任务，展开/折叠
@@ -65,6 +75,20 @@
 - 首页仪表盘：今日待办、项目进度、本周工时、工作量分布
 - 全局搜索（Ctrl+K）：跨项目/任务/待办/灵感，点结果跳转并高亮
 - 自动保存（0.4 秒）、备份与导入导出、深色模式
+
+### 界面截图
+
+| 页面 | 预览 |
+| --- | --- |
+| 仪表盘 | [dashboard.png](docs/screenshots/dashboard.png) |
+| 项目管理 | [projects.png](docs/screenshots/projects.png) |
+| 今日待办（四象限） | [todos.png](docs/screenshots/todos.png) |
+| 灵光一闪（时间线） | [ideas.png](docs/screenshots/ideas.png) |
+| 工作汇报列表 | [reports.png](docs/screenshots/reports.png) |
+| 周报详情 | [report-detail.png](docs/screenshots/report-detail.png) |
+| 深色模式 | [dashboard-dark.png](docs/screenshots/dashboard-dark.png) |
+
+> 截图由 `node scripts/capture.mjs` 自动生成（临时数据目录 + 示例数据，不会碰你的真实数据），封面图由 `node scripts/cover.mjs` 渲染。
 
 ## 四、TDesign 组件用在哪
 
@@ -110,8 +134,11 @@ workbench/
 │  │                        # ProjectNode（递归树）/ TodoCard / BarChart
 │  └─ views/                 # Dashboard / Projects / Todos / Ideas / Reports / Settings
 ├─ dist/                     # 构建产物（服务托管的就是这里）
-├─ data/                     # 数据（可改到任意文件夹）
-└─ test/smoke-vue.mjs        # 端到端冒烟测试（48 项断言）
+├─ data/                     # 数据（可改到任意文件夹，已被 .gitignore 排除）
+├─ docs/                     # README 封面图、功能演示图、界面截图
+├─ test/                     # smoke-vue.mjs（48 项回归）+ audit.mjs（41 项功能审计）
+├─ LICENSE                   # MIT
+└─ README.md
 ```
 
 ## 六、开发
@@ -139,7 +166,11 @@ npm test             # 端到端冒烟测试（需先 npm start；用临时数�
 3. 系统级通知（浏览器桌面提醒、周五早推送）
 4. 季度报 / 按标签维度统计工时
 
-## 九、版本
+## 九、许可
+
+本项目使用 [MIT License](LICENSE)，可自由使用、修改、分发（保留版权声明即可）。
+
+## 十、版本
 
 - **v2.0**：页面层重写为 Vue 3 + TDesign，业务逻辑层原样复用；数据格式与 v1 完全兼容（老数据直接可用）
 - **v1.x**：TypeScript + 原生 DOM 手写组件（备份在 `E:\vs_code_js\workbench_backup_v1`）
