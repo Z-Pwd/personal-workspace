@@ -1,0 +1,18 @@
+# 依赖与构建产物
+node_modules/
+dist/
+
+# 个人数据（绝不入库）
+data/
+config.json
+
+# 测试产物与截图
+_review/
+test/**/*.result.json
+*.log
+
+# 编辑器/系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

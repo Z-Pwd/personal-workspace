@@ -1,0 +1,25 @@
+{
+  "name": "personal-workbench",
+  "version": "2.0.0",
+  "private": true,
+  "description": "个人工作台：项目拆解 / 今日待办（四象限）/ 灵光一闪 / 周报月报，数据存本地 JSON",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node server/server.mjs",
+    "test": "node test/smoke-vue.mjs",
+    "dev": "vite",
+    "audit": "node test/audit.mjs"
+  },
+  "dependencies": {
+    "tdesign-icons-vue-next": "^0.4.11",
+    "tdesign-vue-next": "^1.20.10",
+    "vue": "^3.5.44",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.4.5"
+  }
+}
