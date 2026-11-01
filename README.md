@@ -1,6 +1,6 @@
 # 个人工作台 v2（Vue 3 + TDesign）
 
-> 把工作量统计从 txt / Word 里解放出来的本地工作台　·　源码仓库 <https://github.com/Z-Pwd/personal-workspace>
+> 把工作量统计从 txt / Word / Excel 里解放出来的本地工作台　·　源码仓库 <https://github.com/Z-Pwd/personal-workspace>
 
 ![Vue 3](https://img.shields.io/badge/Vue-3.5-42b883?logo=vue.js&logoColor=white)
 ![TDesign](https://img.shields.io/badge/UI-TDesign%20%E8%85%BE%E8%AE%AF%E7%BB%84%E4%BB%B6%E5%BA%93-0052d9)
