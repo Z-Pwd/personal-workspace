@@ -7,12 +7,12 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
+import { CHROME, ROOT } from '../scripts/env.mjs';
 const APP = 'http://127.0.0.1:7788';
-const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9371;
 const TMP = path.join(process.env.LOCALAPPDATA ?? 'C:/Windows/Temp', 'Temp', 'wb_v3_data');
 const PROFILE = path.join(process.env.LOCALAPPDATA ?? 'C:/Windows/Temp', 'Temp', 'wb_v3_profile');
-const REAL = 'E:/vs_code_js/workbench/data';
+const REAL = `${ROOT}/data`;
 
 const results = [];
 const errors = [];
@@ -234,8 +234,8 @@ await clickText('.t-dialog button', '记录一条工时', 700);
 const rowsAfter = await ev(`document.querySelectorAll('.t-dialog .time-log-row').length`);
 {
   const png = await send('Page.captureScreenshot', { format: 'png' });
-  await fsp.mkdir('E:/vs_code_js/workbench/_review', { recursive: true });
-  await fsp.writeFile('E:/vs_code_js/workbench/_review/v3-task-dialog.png', Buffer.from(png.data, 'base64'));
+  await fsp.mkdir(`${ROOT}/_review`, { recursive: true });
+  await fsp.writeFile(`${ROOT}/_review/v3-task-dialog.png`, Buffer.from(png.data, 'base64'));
 }
 await dialogClick('保存', 1400);
 const withLog = await apiGet('projects');
@@ -289,7 +289,7 @@ rec(
 rec('任务完成数按 doneAt 计入', rep?.snapshot?.metrics?.taskDone === expectedDone, `taskDone=${rep?.snapshot?.metrics?.taskDone} 期望=${expectedDone}`);
 {
   const png = await send('Page.captureScreenshot', { format: 'png' });
-  await fsp.writeFile('E:/vs_code_js/workbench/_review/v3-report.png', Buffer.from(png.data, 'base64'));
+  await fsp.writeFile(`${ROOT}/_review/v3-report.png`, Buffer.from(png.data, 'base64'));
 }
 const seedDay = projDoc.items.find((x) => x.id === 'in-week')?.timeLogs?.[0]?.date;
 const dailySeed = rep?.snapshot?.dailyHours?.find((d) => d.date === seedDay)?.hours;
@@ -414,7 +414,7 @@ const distSize = (dir) => {
   }
   return total;
 };
-const sizeMb = distSize('E:/vs_code_js/workbench/dist') / 1024 / 1024;
+const sizeMb = distSize(`${ROOT}/dist`) / 1024 / 1024;
 rec('包体 < 1.6MB（按需引入生效）', sizeMb < 1.6, `${sizeMb.toFixed(2)} MB`);
 
 /* ================= 6. 清空全部数据（高危流程） ================= */
@@ -504,8 +504,8 @@ console.log('');
 console.log(`=== 共 ${results.length} 项，通过 ${results.length - failed.length}，失败 ${failed.length} ===`);
 if (failed.length) console.log('失败项：', failed.map((f) => f.name).join(' | '));
 if (errors.length) console.log('控制台报错：\n' + errors.slice(0, 5).join('\n'));
-await fsp.mkdir('E:/vs_code_js/workbench/_review', { recursive: true });
-await fsp.writeFile('E:/vs_code_js/workbench/_review/v3-result.json', JSON.stringify({ results, errors }, null, 2));
+await fsp.mkdir(`${ROOT}/_review`, { recursive: true });
+await fsp.writeFile(`${ROOT}/_review/v3-result.json`, JSON.stringify({ results, errors }, null, 2));
 
 ws.close();
 chrome.kill();

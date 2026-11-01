@@ -5,10 +5,10 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
+import { CHROME, REVIEW, ROOT } from './env.mjs';
 const page = process.argv[2] ?? 'dashboard';
 const width = Number(process.argv[3] ?? 1440);
 const height = Number(process.argv[4] ?? 900);
-const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9411;
 const PROFILE = `${process.env.LOCALAPPDATA}/Temp/wb_shot_profile`;
 
@@ -107,8 +107,8 @@ if (process.argv.includes('--demo')) {
 }
 
 const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
-fs.mkdirSync('E:/vs_code_js/workbench/_review', { recursive: true });
-const file = `E:/vs_code_js/workbench/_review/vue-${page}.png`;
+fs.mkdirSync(`${ROOT}/_review`, { recursive: true });
+const file = `${REVIEW}/vue-${page}.png`;
 fs.writeFileSync(file, Buffer.from(shot.data, 'base64'));
 
 const body = await send('Runtime.evaluate', { expression: 'document.body.innerText.slice(0, 400)', returnByValue: true });

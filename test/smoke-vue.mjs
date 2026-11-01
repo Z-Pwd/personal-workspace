@@ -7,12 +7,12 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
+import { CHROME, ROOT } from '../scripts/env.mjs';
 const APP = 'http://127.0.0.1:7788';
-const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9333;
 const PROFILE = path.join(process.env.LOCALAPPDATA ?? 'C:/Windows/Temp', 'Temp', 'wb_vue_profile');
-const SHOTS = 'E:/vs_code_js/workbench/_review';
-const REAL_DATA = 'E:/vs_code_js/workbench/data';
+const SHOTS = `${ROOT}/_review`;
+const REAL_DATA = `${ROOT}/data`;
 const TMP_DATA = path.join(process.env.LOCALAPPDATA ?? 'C:/Windows/Temp', 'Temp', 'wb_vue_data');
 
 const results = [];

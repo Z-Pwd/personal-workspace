@@ -1,6 +1,6 @@
 /** 示例数据：第一次打开时可以先看看长什么样 */
 import { newIdea, newTask, newTodo, nextOrder, store } from './store';
-import { nowISO, todayISO, addDaysISO } from './util';
+import { nowISO, todayISO, addDaysISO, weekStart } from './util';
 
 export function hasAnyData(): boolean {
   return store.projects.length > 0 || store.todos.length > 0 || store.ideas.length > 0;
@@ -8,7 +8,13 @@ export function hasAnyData(): boolean {
 
 export function loadDemoData(): void {
   const today = todayISO();
-  const doneAt = (daysAgo: number): string => `${addDaysISO(today, -daysAgo)}T18:00:00.000Z`;
+  const weekStartISO = weekStart();
+  /** 往前推 n 天；如果跨过本周一，就落到今天（保证示例数据始终"本周有内容"） */
+  const recentDay = (daysAgo: number): string => {
+    const d = addDaysISO(today, -daysAgo);
+    return d < weekStartISO ? today : d;
+  };
+  const doneAt = (daysAgo: number): string => `${recentDay(daysAgo)}T18:00:00.000Z`;
 
   const project = newTask({
     title: '固定资产盘点系统（示例项目）',
@@ -37,7 +43,7 @@ export function loadDemoData(): void {
       tags: ['沟通'],
       estHours: 2,
       actHours: 2.5,
-      timeLogs: [{ id: 'seed-log-1', date: addDaysISO(today, -3), hours: 2.5, note: '财务 1h + 行政 1.5h' }],
+      timeLogs: [{ id: 'seed-log-1', date: recentDay(3), hours: 2.5, note: '财务 1h + 行政 1.5h' }],
     }),
     newTask({
       title: '输出流程图 v1',
@@ -47,7 +53,7 @@ export function loadDemoData(): void {
       tags: ['文档'],
       estHours: 4,
       actHours: 4.5,
-      timeLogs: [{ id: 'seed-log-2', date: addDaysISO(today, -1), hours: 4.5, note: '' }],
+      timeLogs: [{ id: 'seed-log-2', date: recentDay(1), hours: 4.5, note: '' }],
     }),
   );
 
@@ -134,7 +140,7 @@ export function loadDemoData(): void {
       tags: ['效率'],
     }),
     newIdea({
-      content: '给「她」加一个能力：每天问我今天最想完成的一件事，然后晚上再问有没有做到。',
+      content: '每天早上一句话写下「今天最重要的一件事」，晚上回看有没有做到。',
       tags: ['生活'],
     }),
   );

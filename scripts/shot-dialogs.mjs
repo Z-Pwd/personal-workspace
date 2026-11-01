@@ -3,15 +3,16 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { CHROME, ROOT } from './env.mjs';
 const APP = 'http://127.0.0.1:7788';
 const PORT = 9381;
 const TMP = path.join(process.env.LOCALAPPDATA, 'Temp', 'wb_shot_ui');
-const OUT = 'E:/vs_code_js/workbench/_review';
+const OUT = `${ROOT}/_review`;
 fs.rmSync(TMP, { recursive: true, force: true });
 fs.mkdirSync(TMP, { recursive: true });
 await fetch(`${APP}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataDir: TMP }) });
 
-const chrome = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', [
+const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars', '--no-first-run',
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${path.join(process.env.LOCALAPPDATA, 'Temp', 'wb_shot_ui_prof')}`,
   '--window-size=1440,900', `${APP}/#/dashboard`,
@@ -79,7 +80,7 @@ await ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => 
 await sleep(1200);
 await shot('ui-todo-dialog');
 
-await fetch(`${APP}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataDir: 'E:/vs_code_js/workbench/data' }) });
+await fetch(`${APP}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataDir: `${ROOT}/data` }) });
 fs.rmSync(TMP, { recursive: true, force: true });
 ws.close();
 chrome.kill();

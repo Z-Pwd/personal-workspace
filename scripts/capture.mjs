@@ -8,11 +8,11 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
+import { CHROME } from './env.mjs';
 const APP = 'http://127.0.0.1:7788';
-const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9361;
 const OUT = path.join(process.cwd(), 'docs', 'screenshots');
-const TMP = process.env.CAPTURE_DATA_DIR || 'E:/工作台数据';
+const TMP = process.env.CAPTURE_DATA_DIR || path.join(process.env.LOCALAPPDATA ?? '/tmp', 'Temp', 'wb_capture_data');
 const PROFILE = path.join(process.env.LOCALAPPDATA ?? 'C:/Windows/Temp', 'Temp', 'wb_capture_profile');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

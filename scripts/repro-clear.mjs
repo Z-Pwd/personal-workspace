@@ -3,18 +3,19 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { CHROME, ROOT } from './env.mjs';
 const APP = 'http://127.0.0.1:7788';
 const PORT = 9392;
 const TMP = path.join(process.env.LOCALAPPDATA, 'Temp', 'wb_clear_data');
 const PROF = path.join(process.env.LOCALAPPDATA, 'Temp', 'wb_clear_prof');
-const OUT = 'E:/vs_code_js/workbench/_review';
+const OUT = `${ROOT}/_review`;
 fs.rmSync(TMP, { recursive: true, force: true });
 fs.rmSync(PROF, { recursive: true, force: true });
 fs.mkdirSync(TMP, { recursive: true });
 const cfg = (dir) => fetch(APP + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataDir: dir }) });
 await cfg(TMP);
 
-const chrome = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', [
+const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars', '--no-first-run',
   '--remote-debugging-port=' + PORT, '--user-data-dir=' + PROF, '--window-size=1440,900', APP + '/#/dashboard',
 ], { stdio: 'ignore' });
@@ -96,7 +97,7 @@ console.log('   提示:', await ev('document.body.innerText.includes("已清空"
 await shot('clear-done');
 console.log('⑤ 控制台报错:', errors.slice(0, 3));
 
-await cfg('E:/vs_code_js/workbench/data');
+await cfg(`${ROOT}/data`);
 fs.rmSync(TMP, { recursive: true, force: true });
 ws.close();
 chrome.kill();

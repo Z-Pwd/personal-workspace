@@ -91,7 +91,7 @@ function loadDemo(): void {
         <div class="welcome">
           <h2>👋 欢迎，这是你的个人工作台</h2>
           <p class="muted">
-            数据会以 JSON 文件保存在你指定的文件夹里（默认 E:\vs_code_js\workbench\data），不经过任何外部服务器。
+            数据会以 JSON 文件保存在你指定的文件夹里（默认是工作台目录下的 data，可在设置里改），不经过任何外部服务器。
           </p>
           <div class="toolbar">
             <t-button theme="primary" @click="router.push('/projects')">建第一个项目</t-button>

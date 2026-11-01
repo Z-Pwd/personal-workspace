@@ -7,10 +7,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const ROOT = process.cwd();
-const DOCS = path.join(ROOT, 'docs');
+import { CHROME, DOCS, ROOT } from './env.mjs';
 const SHOTS = path.join(DOCS, 'screenshots');
-const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 
 const b64 = (name) => `data:image/png;base64,${fs.readFileSync(path.join(SHOTS, name)).toString('base64')}`;
 
