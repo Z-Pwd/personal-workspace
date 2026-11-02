@@ -14,7 +14,11 @@
     "test:extra": "node test/e2e-extra.mjs",
     "test:nlp": "node test/nlp.test.mjs",
     "test:b2": "node test/e2e-batch2.mjs",
-    "test:responsive": "node test/responsive.mjs"
+    "test:responsive": "node test/responsive.mjs",
+    "typecheck": "vue-tsc --noEmit",
+    "test:all": "node test/nlp.test.mjs && node test/reminder.test.mjs && node test/regression-v3.mjs && node test/smoke-vue.mjs && node test/audit.mjs && node test/e2e-extra.mjs && node test/e2e-batch2.mjs && node test/e2e-batch3.mjs && node test/responsive.mjs",
+    "test:b3": "node test/e2e-batch3.mjs",
+    "test:reminder": "node test/reminder.test.mjs"
   },
   "dependencies": {
     "tdesign-icons-vue-next": "^0.4.11",
@@ -27,7 +31,8 @@
     "esbuild": "^0.28.2",
     "typescript": "^5.7.2",
     "unplugin-vue-components": "^32.1.0",
-    "vite": "^6.4.5"
+    "vite": "^6.4.5",
+    "vue-tsc": "^3.3.14"
   },
   "license": "MIT",
   "repository": {

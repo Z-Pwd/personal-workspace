@@ -1,4 +1,5 @@
 /** 周报 / 月报：周期计算、数据汇总、Markdown / 纯文本导出 */
+import { currentSections, DEFAULT_SECTIONS, sectionNumber } from './report-template';
 import { store } from './store';
 import { doneDateOf, hoursInRange } from './task-ops';
 import { flatten, progressOf } from './tree';
@@ -14,6 +15,8 @@ import {
   type ReportKind,
   type ReportMetrics,
   type ReportProjectLine,
+  type ReportSectionConfig,
+  type ReportSectionKey,
   type ReportSnapshot,
   type ReportTaskLine,
   type ReportTodoLine,
@@ -34,7 +37,19 @@ import {
 /** 周期起止：周报=周一到周日，月报=自然月 */
 export function periodOf(kind: ReportKind, anchor: string = todayISO()): { start: string; end: string } {
   if (kind === 'week') return { start: weekStart(anchor), end: weekEnd(anchor) };
+  if (kind === 'quarter') return quarterRange(anchor);
   return { start: monthStart(anchor), end: monthEnd(anchor) };
+}
+
+/** 季度起止：Q1=1-3 月，Q2=4-6 月，Q3=7-9 月，Q4=10-12 月 */
+export function quarterRange(anchor: string = todayISO()): { start: string; end: string; quarter: number } {
+  const year = Number(anchor.slice(0, 4));
+  const month = Number(anchor.slice(5, 7));
+  const q = Math.floor((month - 1) / 3) + 1;
+  const startMonth = q * 3 - 2;
+  const start = `${year}-${String(startMonth).padStart(2, '0')}-01`;
+  const end = monthEnd(`${year}-${String(startMonth + 2).padStart(2, '0')}-01`);
+  return { start, end, quarter: q };
 }
 
 export function periodLength(start: string, end: string): number {
@@ -168,7 +183,22 @@ export function buildReport(kind: ReportKind, start: string, end: string): Repor
     dailyHours.push({ date: day, hours: Math.round(hours * 10) / 10 });
   }
 
+  // 按标签统计工时（多标签平摊）
+  const tagMap = new Map<string, number>();
+  for (const h of hits) {
+    const hrs = hoursInRange(h.node, start, end);
+    if (hrs <= 0) continue;
+    const tags = h.node.tags.length ? h.node.tags : ['未分类'];
+    for (const tag of tags) tagMap.set(tag, (tagMap.get(tag) ?? 0) + hrs / tags.length);
+  }
+  const tagHours = [...tagMap.entries()]
+    .map(([tag, hours]) => ({ tag, hours: Math.round(hours * 10) / 10 }))
+    .sort((a, b) => b.hours - a.hours)
+    .slice(0, 10);
+
   const snapshot: ReportSnapshot = {
+    sections: currentSections(),
+    tagHours,
     metrics: {
       ...base,
       prevTodoDone: prevM.todoDone,
@@ -189,7 +219,7 @@ export function buildReport(kind: ReportKind, start: string, end: string): Repor
     kind,
     start,
     end,
-    title: `${start} ~ ${end} ${kind === 'week' ? '周报' : '月报'}`,
+    title: `${start} ~ ${end} ${kindLabel(kind)}`,
     status: 'draft',
     snapshot,
     manual: { summary: '', highlights: '', risks: '', nextPlan: '' },
@@ -208,7 +238,9 @@ export function refreshSnapshot(report: Report): void {
 }
 
 export function kindLabel(kind: ReportKind): string {
-  return kind === 'week' ? '周报' : '月报';
+  if (kind === 'week') return '周报';
+  if (kind === 'quarter') return '季报';
+  return '月报';
 }
 
 export function statusLabel(status: Report['status']): string {
@@ -235,65 +267,87 @@ function deltaText(now: number, prev: number, unit = ''): string {
   return `（较上期 ${sign}${round1(Math.abs(d))}${unit}）`;
 }
 
-export function toMarkdown(r: Report): string {
+/** 某一章的内容（不含标题），Markdown / 纯文本 / Word 共用 */
+export function sectionBody(r: Report, key: ReportSectionKey): string[] {
   const m = r.snapshot.metrics;
+  const L: string[] = [];
+
+  if (key === 'overview') {
+    L.push(`- 待办完成：${m.todoDone}/${m.todoTotal}（完成率 ${m.todoRate}%）`);
+    L.push(`- 完成任务：${m.taskDone} 个；实际工时 ${round1(m.hoursAct)}h（预计 ${round1(m.hoursEst)}h）`);
+    L.push(
+      `- 与上期对比：完成待办 ${m.todoDone} 条${deltaText(m.todoDone, m.prevTodoDone, ' 条')}，工时 ${round1(m.hoursAct)}h${deltaText(m.hoursAct, m.prevHoursAct, 'h')}`,
+    );
+    const busiest = [...r.snapshot.dailyHours].sort((a, b) => b.hours - a.hours)[0];
+    if (busiest && busiest.hours > 0) L.push(`- 投入最多的一天：${busiest.date}（${busiest.hours}h）`);
+    const tags = (r.snapshot.tagHours ?? []).slice(0, 5);
+    if (tags.length) L.push(`- 按标签工时：${tags.map((t) => `${t.tag} ${t.hours}h`).join('、')}`);
+    return L;
+  }
+
+  if (key === 'projects') {
+    if (!r.snapshot.projects.length) return ['- 本期无进行中的项目'];
+    for (const p of r.snapshot.projects) L.push(`- ${projectLine(p)}`);
+    return L;
+  }
+
+  if (key === 'todos') {
+    L.push(`四象限分布：${QUADRANT_ORDER.map((q) => `${QUADRANT_LABEL[q]} ${m.todoQuadrants[q]} 条`).join('、')}`);
+    if (r.snapshot.undoneTodos.length) {
+      L.push('', '未完成事项：');
+      for (const t of r.snapshot.undoneTodos) {
+        L.push(`- ${t.title}（${QUADRANT_LABEL[t.quadrant]}${t.dueTime ? `，计划 ${t.dueTime}` : ''}）`);
+      }
+    } else {
+      L.push('', '本期待办全部完成。');
+    }
+    return L;
+  }
+
+  if (key === 'ideas') {
+    L.push(`本期新增灵感 ${m.ideaNew} 条，转成行动 ${m.ideaAdopted} 条`);
+    for (const i of r.snapshot.ideas.slice(0, 6)) {
+      const first = i.content.split('\n')[0];
+      L.push(`- ${first}${i.convertedTo ? `（已转${i.convertedTo}）` : ''}`);
+    }
+    return L;
+  }
+
+  if (key === 'next') {
+    if (r.snapshot.undoneTodos.length) {
+      L.push('顺延事项：');
+      for (const t of r.snapshot.undoneTodos) L.push(`- [ ] ${t.title}`);
+      L.push('');
+    }
+    for (const t of r.snapshot.undoneTasks.slice(0, 8)) {
+      L.push(`- [ ] ${t.title}（${t.project}，截止 ${t.due ?? '未定'}）`);
+    }
+    if (r.snapshot.undoneTasks.length) L.push('');
+    L.push(r.manual.nextPlan.trim() || '（待补充）');
+    return L;
+  }
+
+  // manual
+  L.push(r.manual.summary.trim() || '（待补充）');
+  if (r.manual.highlights.trim()) L.push('', '亮点：', r.manual.highlights.trim());
+  if (r.manual.risks.trim()) L.push('', '风险与问题：', r.manual.risks.trim());
+  return L;
+}
+
+/** 报告实际生效的章节（老报告没有 sections 时用默认） */
+export function sectionsOf(r: Report): ReportSectionConfig[] {
+  return r.snapshot.sections?.length ? r.snapshot.sections : DEFAULT_SECTIONS;
+}
+
+export function toMarkdown(r: Report): string {
   const L: string[] = [];
   L.push(`# ${r.start} ~ ${r.end} ${kindLabel(r.kind)}`, '');
 
-  L.push('## 一、本期工作概览', '');
-  L.push(`- 待办完成：${m.todoDone}/${m.todoTotal}（完成率 ${m.todoRate}%）`);
-  L.push(`- 完成任务：${m.taskDone} 个；实际工时 ${round1(m.hoursAct)}h（预计 ${round1(m.hoursEst)}h）`);
-  L.push(
-    `- 与上期对比：完成待办 ${m.todoDone} 条${deltaText(m.todoDone, m.prevTodoDone, ' 条')}，工时 ${round1(m.hoursAct)}h${deltaText(m.hoursAct, m.prevHoursAct, 'h')}`,
-  );
-  L.push('');
-
-  L.push('## 二、重点项目进展', '');
-  if (r.snapshot.projects.length) {
-    for (const p of r.snapshot.projects) L.push(`- ${projectLine(p)}`);
-  } else {
-    L.push('- 本期无进行中的项目');
-  }
-  L.push('');
-
-  L.push('## 三、待办完成情况', '');
-  L.push(
-    `四象限分布：${QUADRANT_ORDER.map((q) => `${QUADRANT_LABEL[q]} ${m.todoQuadrants[q]} 条`).join('、')}`,
-  );
-  if (r.snapshot.undoneTodos.length) {
-    L.push('', '未完成事项：');
-    for (const t of r.snapshot.undoneTodos) {
-      L.push(`- ${t.title}（${QUADRANT_LABEL[t.quadrant]}${t.dueTime ? `，计划 ${t.dueTime}` : ''}）`);
-    }
-  } else {
-    L.push('', '本期待办全部完成。');
-  }
-  L.push('');
-
-  L.push('## 四、灵感与沉淀', '');
-  L.push(`本期新增灵感 ${m.ideaNew} 条，转成行动 ${m.ideaAdopted} 条`);
-  for (const i of r.snapshot.ideas.slice(0, 6)) {
-    const first = i.content.split('\n')[0];
-    L.push(`- ${first}${i.convertedTo ? `（已转${i.convertedTo}）` : ''}`);
-  }
-  L.push('');
-
-  L.push('## 五、下期计划', '');
-  if (r.snapshot.undoneTodos.length) {
-    L.push('顺延事项：');
-    for (const t of r.snapshot.undoneTodos) L.push(`- [ ] ${t.title}`);
-    L.push('');
-  }
-  L.push(r.manual.nextPlan.trim() || '（待补充）', '');
-
-  L.push('## 六、本期总结', '');
-  L.push(r.manual.summary.trim() || '（待补充）', '');
-  if (r.manual.highlights.trim()) {
-    L.push('亮点：', r.manual.highlights.trim(), '');
-  }
-  if (r.manual.risks.trim()) {
-    L.push('风险与问题：', r.manual.risks.trim(), '');
-  }
+  const enabled = sectionsOf(r).filter((s) => s.enabled);
+  enabled.forEach((section, index) => {
+    L.push(`## ${sectionNumber(index)}、${section.title}`, '');
+    L.push(...sectionBody(r, section.key), '');
+  });
 
   L.push('---', `生成时间：${r.generatedAt.slice(0, 16).replace('T', ' ')} · 状态：${statusLabel(r.status)}`);
   return L.join('\n');

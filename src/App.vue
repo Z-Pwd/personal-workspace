@@ -16,6 +16,8 @@ import {
 import CaptureOverlay from './components/CaptureOverlay.vue';
 import ConfirmHost from './components/ConfirmHost.vue';
 import type { CaptureTarget } from './core/capture';
+import { confirmDialog } from './core/confirm';
+import { showNotification, startReminder, type ReminderKind } from './core/reminder';
 import { store } from './core/store';
 import { searchAll, type HitKind, type SearchHit } from './core/search';
 import { requestFocus } from './core/focus';
@@ -119,14 +121,35 @@ function onKeydown(e: KeyboardEvent): void {
   if (e.key === 'Escape') showResults.value = false;
 }
 
+let stopReminder: (() => void) | null = null;
+
+/** 定时提醒：周五写周报 / 月末写月报 */
+function handleReminder(kind: ReminderKind): void {
+  const isWeek = kind === 'weekly';
+  showNotification(isWeek ? '该写周报了' : '该写月报了', '打开工作汇报，一键生成草稿');
+  void confirmDialog({
+    header: '定时提醒',
+    message: isWeek
+      ? '今天是写周报的日子，要现在生成一份草稿吗？'
+      : '月末了，要生成一份月报草稿吗？',
+    confirmText: '去写汇报',
+    cancelText: '稍后',
+    theme: 'info',
+  }).then((ok) => {
+    if (ok) void router.push('/reports');
+  });
+}
+
 onMounted(() => {
   document.addEventListener('click', onDocClick);
   document.addEventListener('keydown', onKeydown);
   document.title = '个人工作台';
+  stopReminder = startReminder(handleReminder);
 });
 onUnmounted(() => {
   document.removeEventListener('click', onDocClick);
   document.removeEventListener('keydown', onKeydown);
+  stopReminder?.();
 });
 
 watch(

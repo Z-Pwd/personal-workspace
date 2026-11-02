@@ -3,11 +3,11 @@ import { reactive } from 'vue';
 import { migrateProjects } from './task-ops';
 import { api, type ApiError } from './api';
 import { broadcastSaved, initSync } from './sync';
-import type { Idea, Project, Report, Task, Todo } from './types';
+import type { Idea, Project, Report, ReportTemplate, Task, Todo } from './types';
 import { toast } from './toast';
 import { nowISO, todayISO, uid } from './util';
 
-export type DocName = 'projects' | 'todos' | 'ideas' | 'reports';
+export type DocName = 'projects' | 'todos' | 'ideas' | 'reports' | 'templates';
 export type SaveState = 'saved' | 'saving' | 'error';
 
 const DOC_FILES: Record<DocName, string> = {
@@ -15,6 +15,7 @@ const DOC_FILES: Record<DocName, string> = {
   todos: 'todos.json',
   ideas: 'ideas.json',
   reports: 'reports.json',
+  templates: 'templates.json',
 };
 
 class Store {
@@ -22,7 +23,8 @@ class Store {
   todos: Todo[] = [];
   ideas: Idea[] = [];
   reports: Report[] = [];
-  revs: Record<DocName, number> = { projects: 0, todos: 0, ideas: 0, reports: 0 };
+  templates: ReportTemplate[] = [];
+  revs: Record<DocName, number> = { projects: 0, todos: 0, ideas: 0, reports: 0, templates: 0 };
   saveState: SaveState = 'saved';
   dataDir = '';
   ready = false;
@@ -76,11 +78,12 @@ class Store {
   }
 
   async reloadAll(): Promise<void> {
-    const [p, t, i, r] = await Promise.all([
+    const [p, t, i, r, tp] = await Promise.all([
       api.getDoc<Project>('projects').catch(() => null),
       api.getDoc<Todo>('todos').catch(() => null),
       api.getDoc<Idea>('ideas').catch(() => null),
       api.getDoc<Report>('reports').catch(() => null),
+      api.getDoc<ReportTemplate>('templates').catch(() => null),
     ]);
     if (p) {
       this.projects = p.items;
@@ -106,7 +109,11 @@ class Store {
       this.reports = r.items;
       this.revs.reports = r.rev;
     }
-    if (p && t && i && r) {
+    if (tp) {
+      this.templates = tp.items;
+      this.revs.templates = tp.rev;
+    }
+    if (p && t && i && r && tp) {
       this.offline = false;
       this.lastError = '';
     }
@@ -117,6 +124,7 @@ class Store {
     if (name === 'projects') return this.projects;
     if (name === 'todos') return this.todos;
     if (name === 'ideas') return this.ideas;
+    if (name === 'templates') return this.templates;
     return this.reports;
   }
 

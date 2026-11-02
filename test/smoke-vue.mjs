@@ -285,7 +285,10 @@ await sleep(900);
 record('汇报页显示生成器', (await evaluate(`document.body.innerText.includes('生成汇报') && document.body.innerText.includes('一键生成')`)) === true);
 await shot('v2-08-reports-list');
 record('点击「一键生成」', await clickText('button', '一键生成', 1400));
-record('进入汇报详情', (await evaluate(`document.body.innerText.includes('重点项目进展') && document.body.innerText.includes('手动补充')`)) === true);
+record(
+  '进入汇报详情',
+  (await evaluate(`document.body.innerText.includes('重点项目进展') && !!document.querySelector('[data-test="manual-section"]')`)) === true,
+);
 record('环形进度图渲染', (await evaluate(`!!document.querySelector('.t-progress--circle')`)) === true);
 record('每日工时柱状图渲染', (await evaluate(`document.querySelectorAll('.cols .col').length`)) >= 7);
 const reportsFile1 = await readJson(path.join(TMP_DATA, 'reports.json'));

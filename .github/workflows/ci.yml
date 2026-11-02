@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 类型检查（含 .vue）
+        run: npm run typecheck
+
+      - name: 构建
+        run: npm run build
+
+      - name: 解析器单测（不依赖浏览器）
+        run: npm run test:nlp
+
+      - name: 提醒逻辑单测（不依赖浏览器）
+        run: npm run test:reminder
+
+      - name: 起本地服务
+        run: |
+          node server/server.mjs --no-open &
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:7788/api/health > /dev/null; then
+              echo "服务已就绪"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: 端到端冒烟
+        run: npm test
+
+      - name: 功能审计
+        run: npm run audit
+
+      - name: 数据层回归
+        run: npm run test:v3
+
+      - name: 补充端到端（导出/导入/目录/离线）
+        run: npm run test:extra
+
+      - name: 第二批（捕获/批量导入/多标签）
+        run: npm run test:b2
+
+      - name: 第二批（模板/Word/季报/提醒）
+        run: npm run test:b3
+
+      - name: 自适应布局
+        run: npm run test:responsive
+
+      - name: 失败时上传截图
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-shots
+          path: _review/
+          if-no-files-found: ignore
+          retention-days: 7

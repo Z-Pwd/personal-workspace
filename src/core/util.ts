@@ -166,6 +166,23 @@ export function dateLabelCN(iso: string): string {
   return `${iso.slice(5)} ${week}${rel ? ` · ${rel}` : ''}`;
 }
 
+/** 下载二进制（.docx 等），不走 charset */
+export function downloadBytes(
+  filename: string,
+  bytes: Uint8Array,
+  mime = 'application/octet-stream',
+): void {
+  const blob = new Blob([bytes as unknown as BlobPart], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 export function downloadJSON(filename: string, data: unknown): void {
   download(filename, JSON.stringify(data, null, 2), 'application/json');
 }

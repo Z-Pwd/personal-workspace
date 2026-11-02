@@ -3,22 +3,35 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { DownloadIcon } from 'tdesign-icons-vue-next';
 import BarChart from '../components/BarChart.vue';
+import ReportTemplateDialog from '../components/ReportTemplateDialog.vue';
+import { currentTemplate } from '../core/report-template';
 import { store } from '../core/store';
 import {
   buildReport,
   kindLabel,
   periodOf,
   prevPeriod,
+  quarterRange,
   refreshSnapshot,
   reportOfPeriod,
+  sectionsOf,
   sortReports,
   statusLabel,
   summaryLine,
   toMarkdown,
   toPlainText,
 } from '../core/report';
-import { PRIORITY_LABEL, QUADRANT_LABEL, QUADRANT_ORDER, STATUS_LABEL, type Report, type ReportKind } from '../core/types';
-import { addDaysISO, download, dueLabel, fmtHours, nowISO, todayISO } from '../core/util';
+import {
+  PRIORITY_LABEL,
+  QUADRANT_LABEL,
+  QUADRANT_ORDER,
+  STATUS_LABEL,
+  type Report,
+  type ReportKind,
+  type ReportSectionKey,
+} from '../core/types';
+import { buildDocx } from '../core/docx';
+import { addDaysISO, download, downloadBytes, dueLabel, fmtHours, nowISO, todayISO } from '../core/util';
 import { confirmAction, toast } from '../core/toast';
 
 const route = useRoute();
@@ -44,15 +57,51 @@ const current = computed<Report | null>(() => {
 
 const reports = computed(() => sortReports(store.reports));
 
+const tplVisible = ref(false);
+
+/** 模板保存后：把新章节配置套到当前打开的这份报告上（只改排版，不动数据） */
+function refreshSections(): void {
+  const r = current.value;
+  if (!r) return;
+  r.snapshot.sections = currentTemplate().sections;
+  r.updatedAt = nowISO();
+  store.touch('reports');
+}
+const sections = computed(() => (current.value ? sectionsOf(current.value) : []));
+const enabledSections = computed(() => sections.value.filter((s) => s.enabled));
+
+/** 章节是否显示（关掉的章节详情页也隐藏） */
+function show(key: ReportSectionKey): boolean {
+  return enabledSections.value.some((s) => s.key === key);
+}
+
+/** 章节标题（模板里可改名，详情页卡片标题跟着走） */
+function sectionTitle(key: ReportSectionKey): string {
+  return enabledSections.value.find((s) => s.key === key)?.title ?? '';
+}
+
+/** 章节顺序 → 用 CSS order 重排，不改动 DOM 结构 */
+function orderOf(key: ReportSectionKey): number {
+  const i = enabledSections.value.findIndex((s) => s.key === key);
+  return i < 0 ? 99 : i;
+}
+
 const thisWeek = periodOf('week', todayISO());
 const thisMonth = periodOf('month', todayISO());
+const thisQuarter = quarterRange(todayISO());
 const hasWeek = computed(() => !!reportOfPeriod(thisWeek.start, thisWeek.end));
 const hasMonth = computed(() => !!reportOfPeriod(thisMonth.start, thisMonth.end));
+const hasQuarter = computed(() => !!reportOfPeriod(thisQuarter.start, thisQuarter.end));
 const isFriday = new Date().getDay() === 5;
+
+function generateQuarter(): void {
+  void generate('quarter', thisQuarter.start, thisQuarter.end);
+}
 
 const kindOptions = [
   { label: '周报', value: 'week' },
   { label: '月报', value: 'month' },
+  { label: '季报', value: 'quarter' },
 ];
 
 function generate(k: ReportKind, s: string, e: string): void {
@@ -122,9 +171,18 @@ async function removeReport(): Promise<void> {
   void router.push('/reports');
 }
 
-async function exportAs(kindOut: 'md' | 'txt' | 'json'): Promise<void> {
+async function exportAs(kindOut: 'docx' | 'md' | 'txt' | 'json'): Promise<void> {
   const r = current.value;
   if (!r) return;
+  if (kindOut === 'docx') {
+    downloadBytes(
+      `${kindLabel(r.kind)}-${r.start}~${r.end}.docx`,
+      buildDocx(r),
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+    toast('已导出 Word（.docx）');
+    return;
+  }
   if (kindOut === 'json') {
     download(`汇报-${r.start}~${r.end}.json`, JSON.stringify(r, null, 2));
     toast('已导出 JSON');
@@ -137,6 +195,7 @@ async function exportAs(kindOut: 'md' | 'txt' | 'json'): Promise<void> {
 }
 
 const exportOptions = [
+  { content: 'Word (.docx)', value: 'docx' },
   { content: 'Markdown (.md)', value: 'md' },
   { content: '纯文本 (.txt)', value: 'txt' },
   { content: 'JSON 备份', value: 'json' },
@@ -222,6 +281,7 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
           <t-radio-group v-model="kind" variant="outline">
             <t-radio-button value="week">周报</t-radio-button>
             <t-radio-button value="month">月报</t-radio-button>
+            <t-radio-button value="quarter">季报</t-radio-button>
           </t-radio-group>
           <span class="muted">基准日期</span>
           <t-date-picker v-model="anchor" style="width: 150px" />
@@ -253,6 +313,16 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
         </div>
         <t-button size="small" variant="outline" @click="generate('month', thisMonth.start, thisMonth.end)">
           生成本月月报
+        </t-button>
+      </div>
+
+      <div v-if="!hasQuarter" class="callout">
+        <div class="callout-body">
+          <strong>本季度还没有生成季报</strong>
+          <div class="muted">本季范围 {{ thisQuarter.start }} ~ {{ thisQuarter.end }}（Q{{ thisQuarter.quarter }}）。</div>
+        </div>
+        <t-button size="small" variant="outline" data-test="gen-quarter" @click="generateQuarter">
+          生成本季季报
         </t-button>
       </div>
 
@@ -292,7 +362,8 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
 
     <!-- ============ 详情页 ============ -->
     <template v-else-if="current && metrics">
-      <t-card :bordered="false" class="detail-head">
+      <div class="detail-sections">
+      <t-card v-if="show('overview')" :bordered="false" class="detail-head" :style="{ order: orderOf('overview') }">
         <div class="toolbar" style="margin-bottom: 10px">
           <strong class="detail-title">{{ current.title }}</strong>
           <t-tag :theme="current.status === 'final' ? 'success' : 'warning'" variant="light" size="small">
@@ -302,12 +373,13 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
           <span class="grow" />
           <t-button size="small" variant="outline" @click="router.push('/reports')">← 列表</t-button>
           <t-button size="small" variant="outline" @click="copySummary">复制摘要</t-button>
-          <t-dropdown :options="exportOptions" trigger="click" @click="(d: { value?: string }) => exportAs((d.value ?? 'md') as 'md' | 'txt' | 'json')">
+          <t-dropdown :options="exportOptions" trigger="click" @click="(d: { value?: string }) => exportAs((d.value ?? 'md') as 'docx' | 'md' | 'txt' | 'json')">
             <t-button size="small" variant="outline">
               <template #icon><DownloadIcon /></template>
               导出
             </t-button>
           </t-dropdown>
+          <t-button size="small" variant="outline" data-test="open-template" @click="tplVisible = true">模板</t-button>
           <t-button size="small" variant="outline" @click="toggleStatus">{{ current.status === 'final' ? '改回草稿' : '标记定稿' }}</t-button>
           <t-button size="small" variant="outline" @click="regenerate">重新生成</t-button>
           <t-button size="small" theme="danger" variant="text" @click="removeReport">删除</t-button>
@@ -349,8 +421,8 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
         </div>
       </t-card>
 
-      <div class="grid-2 section-gap">
-        <t-card :bordered="false" title="重点项目进展">
+      <div v-if="show('projects')" class="grid-2 section-gap" :style="{ order: orderOf('projects') }">
+        <t-card :bordered="false" :title="sectionTitle('projects')">
           <div v-if="!current.snapshot.projects.length" class="empty-hint">本期没有进行中的项目</div>
           <div v-for="p in current.snapshot.projects" :key="p.id" class="proj-row">
             <div class="spread">
@@ -368,10 +440,18 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
         <t-card :bordered="false" title="每日工时分布">
           <template #actions><span class="muted">按工时流水日期统计</span></template>
           <BarChart :data="current.snapshot.dailyHours.map((d) => ({ label: d.date.slice(5), value: d.hours }))" unit="h" />
+          <div v-if="current.snapshot.tagHours?.length" class="tag-hours" data-test="tag-hours">
+            <div class="muted" style="margin: 10px 0 6px">按标签工时</div>
+            <div class="tag-hours-list">
+              <t-tag v-for="t in current.snapshot.tagHours" :key="t.tag" variant="light" size="small">
+                #{{ t.tag }} {{ t.hours }}h
+              </t-tag>
+            </div>
+          </div>
         </t-card>
       </div>
 
-      <t-card :bordered="false" title="待办完成情况" class="section-gap">
+      <t-card v-if="show('todos')" :bordered="false" :title="sectionTitle('todos')" class="section-gap" :style="{ order: orderOf('todos') }">
         <template #actions>
           <div class="spread">
             <span class="muted">未完成 {{ current.snapshot.undoneTodos.length }} 条</span>
@@ -407,8 +487,7 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
         <p v-else class="muted">本期待办全部完成 🎉</p>
       </t-card>
 
-      <div class="grid-2 section-gap">
-        <t-card :bordered="false" title="灵感与沉淀">
+      <t-card v-if="show('ideas')" :bordered="false" :title="sectionTitle('ideas')" class="section-gap" :style="{ order: orderOf('ideas') }">
           <template #actions>
             <span class="muted">新增 {{ metrics.ideaNew }} · 转化 {{ metrics.ideaAdopted }}</span>
           </template>
@@ -420,7 +499,7 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
           </div>
         </t-card>
 
-        <t-card :bordered="false" title="下期要盯的任务">
+      <t-card v-if="show('next')" :bordered="false" :title="sectionTitle('next')" class="section-gap" :style="{ order: orderOf('next') }">
           <div v-if="!current.snapshot.undoneTasks.length" class="empty-hint">没有临近截止的未完成任务</div>
           <div v-for="t in current.snapshot.undoneTasks" :key="t.id" class="report-line">
             <span class="line-title">{{ t.title }}</span>
@@ -430,10 +509,16 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
             <span class="muted">{{ t.project }}</span>
             <span v-if="t.due" class="muted">{{ dueLabel(t.due) }}</span>
           </div>
-        </t-card>
-      </div>
+      </t-card>
 
-      <t-card :bordered="false" title="手动补充" class="section-gap">
+      <t-card
+        v-if="show('manual')"
+        :bordered="false"
+        :title="sectionTitle('manual')"
+        class="section-gap"
+        :style="{ order: orderOf('manual') }"
+        data-test="manual-section"
+      >
         <template #actions><span class="muted">边打字边自动保存，不用点保存按钮</span></template>
         <t-row :gutter="14">
           <t-col :span="6">
@@ -482,11 +567,23 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
           数据快照生成于 {{ current.generatedAt.slice(0, 16).replace('T', ' ') }}；之后新增的数据需要点「重新生成」才会进统计。JSON 存到 data/reports.json。
         </p>
       </t-card>
+      </div>
     </template>
+
+    <ReportTemplateDialog v-model:visible="tplVisible" @saved="refreshSections" />
   </div>
 </template>
 
 <style scoped>
+.tag-hours-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.detail-sections {
+  display: flex;
+  flex-direction: column;
+}
 .gen-card {
   margin-bottom: 12px;
 }

@@ -18,12 +18,13 @@ const APP_DIR = path.resolve(SERVER_DIR, '..');
 const DIST_DIR = path.join(APP_DIR, 'dist');
 const STATIC_DIR = DIST_DIR;
 const CONFIG_FILE = path.join(APP_DIR, 'config.json');
-const DOC_NAMES = new Set(['projects', 'todos', 'ideas', 'reports']);
+const DOC_NAMES = new Set(['projects', 'todos', 'ideas', 'reports', 'templates']);
 const DATA_FILES = {
   projects: 'projects.json',
   todos: 'todos.json',
   ideas: 'ideas.json',
   reports: 'reports.json',
+  templates: 'templates.json',
 };
 const BACKUP_INTERVAL_MS = 5 * 60 * 1000; // 同一文件 5 分钟最多一份自动备份
 const BACKUP_KEEP = 60;                   // _backups 里最多保留 60 份

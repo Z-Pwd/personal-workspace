@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { api, type BackupFile } from '../core/api';
 import { loadDemoData } from '../core/seed';
 import { store } from '../core/store';
@@ -7,6 +7,7 @@ import { applyTheme, theme } from '../core/theme';
 import { fmtDateTime, nowISO } from '../core/util';
 import BulkImportDialog from '../components/BulkImportDialog.vue';
 import PromptDialog from '../components/PromptDialog.vue';
+import { askNotifyPermission, loadReminder, saveReminder, type ReminderPrefs } from '../core/reminder';
 import { confirmAction, toast } from '../core/toast';
 
 const dataDir = ref(store.dataDir);
@@ -162,6 +163,34 @@ async function clearTrash(): Promise<void> {
   toast('回收站已清空');
 }
 
+const reminder = reactive<ReminderPrefs>(loadReminder());
+const weekdayOptions = [
+  { label: '周日', value: 0 },
+  { label: '周一', value: 1 },
+  { label: '周二', value: 2 },
+  { label: '周三', value: 3 },
+  { label: '周四', value: 4 },
+  { label: '周五', value: 5 },
+  { label: '周六', value: 6 },
+];
+const notifyState = ref(
+  typeof Notification === 'undefined' ? '浏览器不支持' : Notification.permission === 'granted' ? '已授权' : Notification.permission === 'denied' ? '已被拒绝（需在浏览器设置里改）' : '未授权',
+);
+
+watch(
+  reminder,
+  (v) => {
+    saveReminder({ ...v });
+  },
+  { deep: true },
+);
+
+async function onAskNotify(): Promise<void> {
+  const r = await askNotifyPermission();
+  notifyState.value = r === 'granted' ? '已授权' : r === 'denied' ? '已被拒绝（需在浏览器设置里改）' : r === 'unsupported' ? '浏览器不支持' : '未授权';
+  toast(r === 'granted' ? '已开启系统通知' : '未获得通知权限，仍会在页面内提示', r === 'granted' ? 'ok' : 'info');
+}
+
 const clearPromptVisible = ref(false);
 const bulkVisible = ref(false);
 
@@ -184,12 +213,14 @@ async function doClearAll(): Promise<void> {
   store.todos = [];
   store.ideas = [];
   store.reports = [];
+  store.templates = [];
   store.touch('projects');
   store.touch('todos');
   store.touch('ideas');
   store.touch('reports');
+  store.touch('templates');
   await store.flush();
-  const left = store.projects.length + store.todos.length + store.ideas.length + store.reports.length;
+  const left = store.projects.length + store.todos.length + store.ideas.length + store.reports.length + store.templates.length;
   if (left === 0) toast(backed ? '已清空全部数据（已自动备份）' : '已清空（备份失败，请注意）', backed ? 'ok' : 'err');
   else toast(`清空未完成，仍有 ${left} 条数据`, 'err');
 }
@@ -275,6 +306,52 @@ function onThemeChange(value: boolean): void {
         </ul>
       </t-card>
     </div>
+
+    <t-card :bordered="false" title="提醒" class="section-gap">
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">定时提醒</div>
+          <div class="muted">到点在页面里弹提示；授权后同时发系统通知</div>
+        </div>
+        <t-switch v-model="reminder.enabled" data-test="reminder-toggle" />
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">每周提醒（写周报）</div>
+          <div class="muted">默认周五 17:00</div>
+        </div>
+        <div class="spread">
+          <t-select
+            v-model="reminder.weekday"
+            :options="weekdayOptions"
+            style="width: 104px"
+            :disabled="!reminder.enabled"
+            data-test="reminder-weekday"
+          />
+          <t-time-picker
+            v-model="reminder.time"
+            format="HH:mm"
+            style="width: 116px"
+            :disabled="!reminder.enabled"
+            data-test="reminder-time"
+          />
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">月末提醒（写月报）</div>
+          <div class="muted">每月最后一天同一时间提醒</div>
+        </div>
+        <t-switch v-model="reminder.monthEnd" :disabled="!reminder.enabled" data-test="reminder-monthend" />
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">系统通知</div>
+          <div class="muted">当前：{{ notifyState }}</div>
+        </div>
+        <t-button size="small" variant="outline" data-test="ask-notify" @click="onAskNotify">申请通知权限</t-button>
+      </div>
+    </t-card>
 
     <t-card :bordered="false" title="危险操作" class="section-gap">
       <div class="setting-row">

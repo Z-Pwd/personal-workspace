@@ -6,7 +6,8 @@
 ![TDesign](https://img.shields.io/badge/UI-TDesign%20%E8%85%BE%E8%AE%AF%E7%BB%84%E4%BB%B6%E5%BA%93-0052d9)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
 ![Local](https://img.shields.io/badge/Data-100%25%20Local-success)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![CI](https://github.com/Z-Pwd/personal-workspace/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 <img src="docs/cover.png" alt="个人工作台" width="100%" />
 
@@ -68,7 +69,11 @@
 - 自动汇总：概览、重点项目进展、四象限分布、未完成事项、灵感、下期要盯的任务
 - 环比（与等长上一周期对比）、完成率环形图、每日工时柱状图
 - 手动补充（总结 / 亮点 / 风险 / 下期计划）边打字边自动保存
-- 存档、重新生成（保留手写内容）、导出 Markdown / 纯文本 / JSON、复制摘要
+- **模板自定义**：章节顺序（↑↓）、标题改名、单章开关；新生成的报告套用，已有报告保留原样
+- **导出 Word（.docx）**：手写 OOXML + 零依赖 ZIP，可直接用 Word 打开编辑；另有 Markdown / 纯文本 / JSON
+- **季报**：Q1–Q4 一键生成（1/4/7/10 月起算）
+- **按标签统计工时**：本期各标签投入多少小时，直接进概览与导出
+- 存档、重新生成（保留手写内容）、复制摘要
 - 未完成事项一键顺延到下期
 
 ### 快速捕获（Ctrl+Shift+Space）
@@ -154,13 +159,17 @@ workbench/
 git clone https://github.com/Z-Pwd/personal-workspace.git
 cd personal-workspace
 npm install          # 首次
+npm run typecheck    # 类型检查（含 .vue，vue-tsc）
 npm run build        # 构建 dist/（等价于双击 重新编译.bat）
 npm start            # 启动本地服务
 npm run dev          # Vite 开发服务器（:5577，API 代理到 7788）
 npm run test:v3      # 数据层回归（迁移 / doneAt / 工时流水 / 统计口径，31 项）
 npm run test:nlp     # 自然语言解析单测（31 项）
 npm run test:b2      # 快速捕获 / 批量导入 / 多标签同步（14 项）
-npm run test:responsive  # 自适应布局：5 种宽度 × 6 个页面（11 项）
+npm run test:responsive  # 自适应布局：7 种宽度 × 6 个页面（20 项）
+npm run test:b3      # 模板 / Word 导出 / 季报 / 提醒（21 项）
+npm run test:reminder    # 提醒触发逻辑单测（11 项）
+npm run test:all     # 一次跑完所有测试（需先起服务）
 npm test             # 端到端冒烟测试（需先 npm start；用临时数据目录，不动真实数据）
 ```
 
@@ -176,12 +185,10 @@ npm test             # 端到端冒烟测试（需先 npm start；用临时数�
 
 ## 八、还没做（候选）
 
-1. 汇报模板自定义（章节顺序、字段开关）
-2. 导出 Word / PDF
-3. 系统级通知（浏览器桌面提醒、周五早推送）
-4. 季度报 / 按标签维度统计工时
-5. 全局快速捕获（Ctrl+Shift+Space）+ 自然语言日期
-6. CI（GitHub Actions 跑三套测试）+ vue-tsc 类型检查
+1. PWA：可安装到桌面 / 手机，断网也能开
+2. 日历热力图（GitHub 贡献图风格）
+3. 接入 LLM 自动写总结（本地 Ollama 优先）
+4. 云同步 / 手机端布局
 
 ## 九、隐私与安全
 
@@ -207,6 +214,7 @@ npm test             # 端到端冒烟测试（需先 npm start；用临时数�
 
 ## 十一、版本
 
+- **v2.3**：汇报模板自定义（顺序/标题/开关）、Word (.docx) 导出（零依赖手写 OOXML）、季报、按标签工时统计、定时提醒（周五/月末）；新增 vue-tsc 类型检查与 GitHub Actions CI
 - **v2.2**：新增「快速捕获」（Ctrl+Shift+Space，支持 `#标签` `@项目` `!优先级` 自然语言日期与工时）、文本批量导入、多标签页自动同步；确认弹窗改为组件式（修掉「清空全部数据」不可用的阻塞问题）
 - **v2.1**：任务增加 `doneAt`（完成时间）与 `timeLogs`（工时流水），周报/仪表盘统一按流水日期统计；旧数据自动迁移（幂等）；待办卡片操作常显；TDesign 改为按需引入（包体 2.1MB → 1.4MB）
 - **v2.0**：页面层重写为 Vue 3 + TDesign，业务逻辑层原样复用；数据格式与 v1 完全兼容（老数据直接可用）

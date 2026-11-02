@@ -127,7 +127,7 @@ export const REPEAT_LABEL: Record<Repeat, string> = {
 };
 
 /* ---------------- 工作汇报（周报 / 月报） ---------------- */
-export type ReportKind = 'week' | 'month';
+export type ReportKind = 'week' | 'month' | 'quarter';
 export type ReportStatus = 'draft' | 'final';
 
 export interface ReportMetrics {
@@ -184,8 +184,26 @@ export interface ReportIdeaLine {
   createdAt: string;
 }
 
+/** 汇报章节：key 固定，标题可改，可隐藏，可排序 */
+export type ReportSectionKey = 'overview' | 'projects' | 'todos' | 'ideas' | 'next' | 'manual';
+
+export interface ReportSectionConfig {
+  key: ReportSectionKey;
+  title: string;
+  enabled: boolean;
+}
+
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  sections: ReportSectionConfig[];
+  updatedAt: string;
+}
+
 /** 生成时冻结的统计数据（重新生成会刷新，手写部分保留） */
 export interface ReportSnapshot {
+  /** 生成时使用的章节配置（顺序/标题/开关），老报告可能没有 */
+  sections?: ReportSectionConfig[];
   metrics: ReportMetrics;
   projects: ReportProjectLine[];
   undoneTodos: ReportTodoLine[];
@@ -194,6 +212,8 @@ export interface ReportSnapshot {
   ideas: ReportIdeaLine[];
   highlights: { id: string; title: string; project: string; hours: number }[];
   dailyHours: { date: string; hours: number }[];
+  /** 按标签统计的本期工时（多标签按数量平摊，避免重复计数） */
+  tagHours?: { tag: string; hours: number }[];
 }
 
 export interface Report {
