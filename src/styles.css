@@ -4,6 +4,10 @@ body,
 #app {
   height: 100%;
 }
+:root {
+  /* 顶栏与内容区共用的左右留白，保证两者右边缘对齐 */
+  --app-pad-x: 24px;
+}
 body {
   margin: 0;
   background: var(--td-bg-color-page);
@@ -221,7 +225,7 @@ body {
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 24px 12px;
+  padding: 20px var(--app-pad-x) 12px;
   flex-wrap: wrap;
 }
 .page-head h1 {
@@ -242,9 +246,8 @@ body {
   min-width: 0;
 }
 .content {
-  padding: 4px 24px 40px;
+  padding: 4px var(--app-pad-x) 40px;
   width: 100%;
-  max-width: 1400px;
   box-sizing: border-box;
 }
 
@@ -393,11 +396,14 @@ body {
     width: 200px;
     flex: 0 0 200px;
   }
+  :root {
+    --app-pad-x: 20px;
+  }
   .content {
-    padding: 4px 20px 36px;
+    padding: 4px var(--app-pad-x) 36px;
   }
   .topbar {
-    padding: 16px 20px 10px;
+    padding: 16px var(--app-pad-x) 10px;
   }
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -444,15 +450,21 @@ body {
     flex: 1 1 auto;
     min-width: 0;
   }
+  :root {
+    --app-pad-x: 16px;
+  }
   .content {
-    padding: 4px 16px 32px;
+    padding: 4px var(--app-pad-x) 32px;
   }
 }
 
 /* 手机：顶栏两行、控件铺满、弹窗不出界 */
 @media (max-width: 767px) {
+  :root {
+    --app-pad-x: 12px;
+  }
   .topbar {
-    padding: 12px 14px 8px;
+    padding: 12px var(--app-pad-x) 8px;
     gap: 8px;
   }
   .page-head h1 {
@@ -473,7 +485,7 @@ body {
     max-width: 100%;
   }
   .content {
-    padding: 4px 12px 28px;
+    padding: 4px var(--app-pad-x) 28px;
   }
   .stat-grid {
     gap: 10px;

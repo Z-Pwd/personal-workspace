@@ -97,7 +97,7 @@ await ev(`(() => { const b = [...document.querySelectorAll('button')].find((x) =
 await sleep(1600);
 
 const ROUTES = ['dashboard', 'projects', 'todos', 'ideas', 'reports', 'settings'];
-const WIDTHS = [1440, 1200, 992, 768, 430];
+const WIDTHS = [2560, 1920, 1440, 1200, 992, 768, 430];
 
 for (const width of WIDTHS) {
   await setViewport(width);
@@ -111,6 +111,24 @@ for (const width of WIDTHS) {
     if (over > worst.overflow) worst = { route, overflow: over };
   }
   rec(`${width}px：6 个页面无横向溢出`, worst.overflow <= 1, worst.overflow ? `${worst.route} 溢出 ${worst.overflow}px` : '全部贴合');
+  // 顶栏搜索框与内容区右边缘必须对齐（这是"右侧白边"的直接检查）
+  const align = await ev(`(() => {
+    const box = document.querySelector('.search-box');
+    const content = document.querySelector('.content');
+    if (!box || !content) return 'none';
+    const b = box.getBoundingClientRect();
+    const c = content.getBoundingClientRect();
+    // 内容区右边缘要减去它自己的 padding-right，才是"可见内容的右边界"
+    const padR = parseFloat(getComputedStyle(content).paddingRight) || 0;
+    return JSON.stringify({ gap: Math.round(c.right - padR - b.right), contentW: Math.round(c.width), vw: window.innerWidth });
+  })()`);
+  if (align === 'none') {
+    rec(`${width}px：搜索框与内容区右对齐`, false, '找不到元素');
+  } else {
+    const a = JSON.parse(align);
+    rec(`${width}px：搜索框与内容区右对齐`, Math.abs(a.gap) <= 2, `偏差 ${a.gap}px · 内容宽 ${a.contentW}/${a.vw}`);
+  }
+
   if (width === 992 || width === 768) {
     await ev(`location.hash = '#/dashboard'`);
     await sleep(700);
@@ -118,6 +136,11 @@ for (const width of WIDTHS) {
     await ev(`location.hash = '#/todos'`);
     await sleep(700);
     await shot(`${width}-todos`);
+  }
+  if (width === 1920 || width === 2560) {
+    await ev(`location.hash = '#/dashboard'`);
+    await sleep(700);
+    await shot(`${width}-dashboard`);
   }
 }
 
