@@ -2,6 +2,7 @@
 import { computed, h, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
+  AddIcon,
   CheckCircleIcon,
   DashboardIcon,
   FileIcon,
@@ -12,7 +13,9 @@ import {
   SettingIcon,
   SunnyIcon,
 } from 'tdesign-icons-vue-next';
+import CaptureOverlay from './components/CaptureOverlay.vue';
 import ConfirmHost from './components/ConfirmHost.vue';
+import type { CaptureTarget } from './core/capture';
 import { store } from './core/store';
 import { searchAll, type HitKind, type SearchHit } from './core/search';
 import { requestFocus } from './core/focus';
@@ -81,10 +84,28 @@ function onDocClick(e: MouseEvent): void {
   if (!el.closest('.search-box')) showResults.value = false;
 }
 
+const captureVisible = ref(false);
+
+function openCapture(): void {
+  showResults.value = false;
+  captureVisible.value = true;
+}
+
+/** 捕获完成后跳到对应页面，让用户看到刚记的东西 */
+function onCaptured(target: CaptureTarget): void {
+  const path = target === 'idea' ? '/ideas' : target === 'task' ? '/projects' : '/todos';
+  if (route.path !== path) void router.push(path);
+}
+
 function onKeydown(e: KeyboardEvent): void {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
     searchRef.value?.focus?.();
+  }
+  // Ctrl+Shift+Space（e.code 兼容部分输入法不给出空格字符的情况）
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.code === 'Space' || e.key === ' ')) {
+    e.preventDefault();
+    openCapture();
   }
   if (e.key === 'Escape') showResults.value = false;
 }
@@ -170,6 +191,11 @@ function retry(): void {
           <p>{{ pageSub }}</p>
         </div>
         <div class="topbar-right">
+          <t-tooltip content="快速捕获（Ctrl+Shift+Space）">
+            <t-button variant="outline" shape="square" data-test="open-capture" aria-label="快速捕获" @click="openCapture">
+              <template #icon><AddIcon /></template>
+            </t-button>
+          </t-tooltip>
           <div class="search-box">
             <t-input
               ref="searchRef"
@@ -214,6 +240,7 @@ function retry(): void {
       </div>
     </main>
 
+    <CaptureOverlay v-model:visible="captureVisible" @done="onCaptured" />
     <ConfirmHost />
   </div>
 </template>

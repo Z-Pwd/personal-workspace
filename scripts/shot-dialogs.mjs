@@ -79,6 +79,21 @@ await shot('ui-todos-page');
 await ev(`(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('新建待办（填写细节）')); if (b) b.click(); return true; })()`);
 await sleep(1200);
 await shot('ui-todo-dialog');
+// 关掉待办弹窗，免得挡住浮层截图
+await ev(`(() => { const b = [...document.querySelectorAll('.t-dialog button')].find(x => x.textContent.trim() === '取消'); if (b) b.click(); return !!b; })()`);
+await sleep(900);
+await ev(`(() => { const b = document.querySelector('[data-test="open-capture"]') || [...document.querySelectorAll('button')].find((x) => x.getAttribute('aria-label') === '快速捕获'); if (b) b.click(); return !!b; })()`);
+await sleep(900);
+await ev(`(() => {
+  const inp = document.querySelector('[data-test="capture-input"] input');
+  if (!inp) return false;
+  inp.focus();
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(inp, '明天 交周报 #周报 !高 2h @固定资产');
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
+})()`);
+await sleep(600);
+await shot('ui-capture');
 
 await fetch(`${APP}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataDir: `${ROOT}/data` }) });
 fs.rmSync(TMP, { recursive: true, force: true });

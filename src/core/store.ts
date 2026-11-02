@@ -2,6 +2,7 @@
 import { reactive } from 'vue';
 import { migrateProjects } from './task-ops';
 import { api, type ApiError } from './api';
+import { broadcastSaved, initSync } from './sync';
 import type { Idea, Project, Report, Task, Todo } from './types';
 import { toast } from './toast';
 import { nowISO, todayISO, uid } from './util';
@@ -34,6 +35,8 @@ class Store {
   private timer: number | undefined;
   private chain: Promise<void> = Promise.resolve();
   private conflictShown = false;
+  private remoteTimer: number | undefined;
+  private remoteHintShown = false;
 
   subscribe(fn: () => void): () => void {
     this.subs.add(fn);
@@ -157,6 +160,8 @@ class Store {
           this.revs[name] = doc.rev;
           this.saveState = 'saved';
           this.lastError = '';
+          // 通知其他标签页：数据变了（它们会自己决定是否重新载入）
+          broadcastSaved({ [name]: doc.rev });
         } catch (err) {
           const e = err as ApiError;
           this.saveState = 'error';
@@ -191,6 +196,27 @@ class Store {
 
   async hasUnsaved(): Promise<boolean> {
     return this.dirty.size > 0;
+  }
+
+  /** 另一个标签页保存了数据：没未保存改动就静默重载，否则提示一次 */
+  handleRemoteUpdate(): void {
+    if (this.remoteTimer !== undefined) window.clearTimeout(this.remoteTimer);
+    this.remoteTimer = window.setTimeout(() => {
+      this.remoteTimer = undefined;
+      if (this.dirty.size === 0) {
+        void this.reloadAll();
+        return;
+      }
+      if (this.remoteHintShown) return;
+      this.remoteHintShown = true;
+      toast('另一个标签页更新了数据', 'info', {
+        label: '载入最新',
+        onClick: () => {
+          this.remoteHintShown = false;
+          void this.reloadAll();
+        },
+      });
+    }, 250);
   }
 
   get pendingCount(): number {

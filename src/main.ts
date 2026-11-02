@@ -4,6 +4,7 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 import { store } from './core/store';
+import { initSync } from './core/sync';
 import { applyTheme, getTheme } from './core/theme';
 import { toast } from './core/toast';
 import './styles.css';
@@ -20,6 +21,8 @@ void (async () => {
     console.error(err);
   }
   app.mount('#app');
+  // 多标签页同步：其他标签保存后，这边静默重新载入
+  initSync(() => store.handleRemoteUpdate());
   if (store.offline) {
     toast(store.lastError || '无法连接本地服务，请确认「启动工作台.bat」窗口还开着', 'err');
   }

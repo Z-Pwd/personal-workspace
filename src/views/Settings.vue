@@ -5,6 +5,7 @@ import { loadDemoData } from '../core/seed';
 import { store } from '../core/store';
 import { applyTheme, theme } from '../core/theme';
 import { fmtDateTime, nowISO } from '../core/util';
+import BulkImportDialog from '../components/BulkImportDialog.vue';
 import PromptDialog from '../components/PromptDialog.vue';
 import { confirmAction, toast } from '../core/toast';
 
@@ -162,6 +163,7 @@ async function clearTrash(): Promise<void> {
 }
 
 const clearPromptVisible = ref(false);
+const bulkVisible = ref(false);
 
 /** 第一步：普通确认；第二步：输入「清空」二次确认（用组件渲染，避免插件 body 传 DOM 的坑） */
 async function clearAll(): Promise<void> {
@@ -228,6 +230,7 @@ function onThemeChange(value: boolean): void {
           <t-button variant="outline" @click="showBackups">查看备份列表</t-button>
           <t-button variant="outline" @click="exportAll">导出全部数据</t-button>
           <t-button variant="outline" :loading="importState.busy" @click="pickFile">导入数据</t-button>
+          <t-button variant="outline" data-test="open-bulk" @click="bulkVisible = true">从文本批量导入</t-button>
           <input ref="fileInput" type="file" accept="application/json,.json" hidden @change="onFile" />
         </div>
         <p class="muted" style="margin: 0">
@@ -289,6 +292,8 @@ function onThemeChange(value: boolean): void {
         <t-button size="small" theme="danger" variant="outline" @click="clearAll">清空</t-button>
       </div>
     </t-card>
+
+    <BulkImportDialog v-model:visible="bulkVisible" />
 
     <PromptDialog
       :visible="clearPromptVisible"
