@@ -370,4 +370,21 @@ function onThemeChange(value: boolean): void {
   justify-content: flex-end;
   margin-top: 12px;
 }
+
+/* 窄屏：设置项允许换行，按钮不被挤 */
+@media (max-width: 767px) {
+  .setting-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .setting-row > div {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  /* 单独占一行的开关/标签不要被拉满 */
+  .setting-row > .t-tag,
+  .setting-row > .t-switch {
+    flex: 0 0 auto;
+  }
+}
 </style>

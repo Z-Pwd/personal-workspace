@@ -13,7 +13,8 @@
     "test:v3": "node test/regression-v3.mjs",
     "test:extra": "node test/e2e-extra.mjs",
     "test:nlp": "node test/nlp.test.mjs",
-    "test:b2": "node test/e2e-batch2.mjs"
+    "test:b2": "node test/e2e-batch2.mjs",
+    "test:responsive": "node test/responsive.mjs"
   },
   "dependencies": {
     "tdesign-icons-vue-next": "^0.4.11",

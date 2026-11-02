@@ -236,4 +236,31 @@ const statusClass = computed(() => `status-${props.node.status}`);
   padding-left: 8px;
   border-left: 1px dashed var(--td-component-stroke);
 }
+
+/* 窄屏：次要信息（优先级/标签/截止/工时/进度）收起，保证标题可读 */
+@media (max-width: 767px) {
+  .node-row {
+    gap: 4px;
+    padding: 6px 4px;
+  }
+  .node-title {
+    max-width: none;
+    flex: 1 1 auto;
+    min-width: 48px;
+  }
+  .node-meta {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .node-meta > .t-tag,
+  .node-meta .hours,
+  .node-meta .kid-count,
+  .node-meta .bar-sm,
+  .node-meta .pct {
+    display: none;
+  }
+  .node-meta .status-select {
+    width: 92px;
+  }
+}
 </style>

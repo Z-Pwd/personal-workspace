@@ -642,4 +642,13 @@ function delta(now: number, prev: number, unit: string): { cls: string; text: st
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* 手机：KPI 改单列，四象限两列 */
+@media (max-width: 767px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    justify-items: start;
+  }
+}
 </style>

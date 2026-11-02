@@ -301,4 +301,13 @@ function loadDemo(): void {
   border-left: 2px solid var(--td-component-stroke);
   padding-left: 10px;
 }
+
+/* 手机：项目条形图收窄名称列 */
+@media (max-width: 767px) {
+  .bar-row {
+    grid-template-columns: 88px minmax(0, 1fr) 44px;
+    gap: 6px;
+    font-size: 12px;
+  }
+}
 </style>

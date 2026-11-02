@@ -517,4 +517,22 @@ watch(
     grid-template-columns: 1fr;
   }
 }
+
+/* 手机：看板单列、卡片更紧凑 */
+@media (max-width: 767px) {
+  .toolbar {
+    gap: 6px;
+  }
+  .stats-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .qbody {
+    min-height: 90px;
+    padding: 8px;
+  }
+  .qhead {
+    padding: 8px 10px;
+  }
+}
 </style>

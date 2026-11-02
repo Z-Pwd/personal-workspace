@@ -85,6 +85,15 @@ function onDocClick(e: MouseEvent): void {
 }
 
 const captureVisible = ref(false);
+/** 窄屏抽屉菜单 */
+const drawerOpen = ref(false);
+
+watch(
+  () => route.path,
+  () => {
+    drawerOpen.value = false;
+  },
+);
 
 function openCapture(): void {
   showResults.value = false;
@@ -157,7 +166,7 @@ function retry(): void {
 
 <template>
   <div class="app-shell">
-    <aside class="side">
+    <aside class="side" :class="{ open: drawerOpen }">
       <div class="brand">
         <div class="brand-logo">🧭</div>
         <div class="brand-text">
@@ -183,9 +192,20 @@ function retry(): void {
         </t-tooltip>
       </div>
     </aside>
+    <div v-if="drawerOpen" class="side-mask" data-test="side-mask" @click="drawerOpen = false" />
 
     <main class="main">
       <header class="topbar">
+        <t-button
+          variant="text"
+          shape="square"
+          class="menu-btn"
+          aria-label="打开菜单"
+          data-test="menu-btn"
+          @click="drawerOpen = !drawerOpen"
+        >
+          ☰
+        </t-button>
         <div class="page-head">
           <h1>{{ pageTitle }}</h1>
           <p>{{ pageSub }}</p>

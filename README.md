@@ -81,6 +81,7 @@
 - 全局搜索（Ctrl+K）：跨项目/任务/待办/灵感，点结果跳转并高亮
 - 自动保存（0.4 秒）、备份与导入导出、深色模式
 - **多标签页同步**：另一个标签页保存后，这边自动重新载入（有未保存改动时会先提示）
+- **自适应布局**：≥1200 常驻侧栏；992~1199 收窄；≤991 侧栏变抽屉（汉堡菜单）；≤767 顶栏两行、看板单列、项目树只留标题/状态/菜单；≤479 统计卡单列
 
 ### 界面截图
 
@@ -142,7 +143,7 @@ workbench/
 ├─ dist/                     # 构建产物（服务托管的就是这里）
 ├─ data/                     # 数据（可改到任意文件夹，已被 .gitignore 排除）
 ├─ docs/                     # README 封面图、功能演示图、界面截图
-├─ test/                     # smoke-vue(48) + audit(41) + regression-v3(31) + nlp(31) + e2e-batch2(14) + e2e-extra(8)
+├─ test/                     # smoke-vue(48) + audit(41) + regression-v3(31) + nlp(31) + e2e-batch2(14) + e2e-extra(8) + responsive(11)
 ├─ LICENSE                   # MIT
 └─ README.md
 ```
@@ -159,6 +160,7 @@ npm run dev          # Vite 开发服务器（:5577，API 代理到 7788）
 npm run test:v3      # 数据层回归（迁移 / doneAt / 工时流水 / 统计口径，31 项）
 npm run test:nlp     # 自然语言解析单测（31 项）
 npm run test:b2      # 快速捕获 / 批量导入 / 多标签同步（14 项）
+npm run test:responsive  # 自适应布局：5 种宽度 × 6 个页面（11 项）
 npm test             # 端到端冒烟测试（需先 npm start；用临时数据目录，不动真实数据）
 ```
 
