@@ -226,9 +226,6 @@ function retry(): void {
               </template>
             </div>
           </div>
-          <t-tag v-if="store.dataDir" variant="outline" size="small" class="path-tag" :title="store.dataDir">
-            📁 {{ store.dataDir }}
-          </t-tag>
           <t-button v-if="store.offline" theme="danger" variant="outline" size="small" @click="retry">重连</t-button>
         </div>
       </header>

@@ -241,13 +241,6 @@ body {
   gap: 10px;
   min-width: 0;
 }
-.path-tag {
-  max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--td-font-family);
-}
 .content {
   padding: 4px 24px 40px;
   width: 100%;
